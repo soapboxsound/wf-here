@@ -4,16 +4,16 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/explore/:city", "destination": "/explore/index.html" },
-    { "source": "/place/:slug", "destination": "/place/index.html" },
-    { "source": "/new-york", "destination": "/new-york/index.html" },
-    { "source": "/los-angeles", "destination": "/los-angeles/index.html" },
-    { "source": "/submit", "destination": "/submit/index.html" },
-    { "source": "/login", "destination": "/login/index.html" },
-    { "source": "/profile", "destination": "/profile/index.html" },
-    { "source": "/for-businesses", "destination": "/for-businesses/index.html" },
-    { "source": "/admin/queue", "destination": "/admin/queue/index.html" },
-    { "source": "/admin/listings", "destination": "/admin/listings/index.html" }
+    { "source": "/explore/:city", "destination": "/explore" },
+    { "source": "/place/:slug", "destination": "/place" },
+    { "source": "/new-york", "destination": "/new-york" },
+    { "source": "/los-angeles", "destination": "/los-angeles" },
+    { "source": "/submit", "destination": "/submit" },
+    { "source": "/login", "destination": "/login" },
+    { "source": "/profile", "destination": "/profile" },
+    { "source": "/for-businesses", "destination": "/for-businesses" },
+    { "source": "/admin/queue", "destination": "/admin/queue" },
+    { "source": "/admin/listings", "destination": "/admin/listings" }
   ],
   "headers": [
     {
