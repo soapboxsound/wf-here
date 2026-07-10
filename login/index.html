@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sign in · wf—here</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/new-york">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+
+  <main class="auth-page">
+    <p class="eyebrow" id="authEyebrow">welcome back</p>
+    <h1 class="auth-title" id="authTitle">Sign in to wf—here</h1>
+    <p class="auth-subtitle">Save spots, see wifi passwords, and contribute to the map.</p>
+
+    <button class="google-sign-in-btn" id="googleSignInBtn" type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      <span>Continue with Google</span>
+    </button>
+
+    <div class="auth-divider">
+      <div class="auth-divider-line"></div>
+      <span class="auth-divider-text">or</span>
+      <div class="auth-divider-line"></div>
+    </div>
+
+    <form id="emailSignInForm">
+      <div class="form-field" id="signUpNameField" style="display: none;">
+        <label class="form-label" for="signUpName">Display name</label>
+        <input class="form-input" id="signUpName" type="text" placeholder="What should we call you?">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="signInEmail">Email</label>
+        <input class="form-input" id="signInEmail" type="email" placeholder="you@example.com" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="signInPassword">Password</label>
+        <input class="form-input" id="signInPassword" type="password" placeholder="your password" required>
+      </div>
+      <button class="auth-submit-btn" id="authSubmitBtn" type="submit">Sign in</button>
+      <div class="auth-error" id="signInError"></div>
+    </form>
+
+    <p class="auth-switch" id="authSwitch">
+      Don't have an account? <a href="/login?mode=signup">Create one</a>
+    </p>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module">
+    import {
+      onAuthChange,
+      signInWithEmail,
+      signInWithGoogle,
+      signUpWithEmail
+    } from "/js/auth.js";
+
+    const params = new URLSearchParams(window.location.search);
+    const isSignUp = params.get("mode") === "signup";
+
+    const authEyebrow = document.getElementById("authEyebrow");
+    const authTitle = document.getElementById("authTitle");
+    const signUpNameField = document.getElementById("signUpNameField");
+    const authSubmitBtn = document.getElementById("authSubmitBtn");
+    const authSwitch = document.getElementById("authSwitch");
+    const emailSignInForm = document.getElementById("emailSignInForm");
+    const signInEmail = document.getElementById("signInEmail");
+    const signInPassword = document.getElementById("signInPassword");
+    const signUpName = document.getElementById("signUpName");
+    const signInError = document.getElementById("signInError");
+    const googleSignInBtn = document.getElementById("googleSignInBtn");
+
+    function redirectAfterLogin() {
+      const redirectUrl = sessionStorage.getItem("redirectAfterLogin") || "/profile";
+      sessionStorage.removeItem("redirectAfterLogin");
+      window.location.href = redirectUrl;
+    }
+
+    function showError(message) {
+      signInError.textContent = message;
+      signInError.style.display = "block";
+    }
+
+    function clearError() {
+      signInError.textContent = "";
+      signInError.style.display = "none";
+    }
+
+    function getSignInErrorMessage(error) {
+      if (error.code === "auth/user-not-found") {
+        return "No account found with that email.";
+      }
+
+      if (error.code === "auth/wrong-password") {
+        return "Incorrect password.";
+      }
+
+      if (error.code === "auth/invalid-email") {
+        return "Please enter a valid email address.";
+      }
+
+      if (error.code === "auth/email-already-in-use") {
+        return "An account with that email already exists.";
+      }
+
+      if (error.code === "auth/weak-password") {
+        return "Password should be at least 6 characters.";
+      }
+
+      return "Something went wrong. Please try again.";
+    }
+
+    function setSignUpMode() {
+      authEyebrow.textContent = "join wf—here";
+      authTitle.textContent = "Create your account";
+      signUpNameField.style.display = "";
+      authSubmitBtn.textContent = "Create account";
+      authSwitch.innerHTML = 'Already have an account? <a href="/login">Sign in</a>';
+    }
+
+    if (isSignUp) {
+      setSignUpMode();
+    }
+
+    onAuthChange((user) => {
+      if (user) {
+        redirectAfterLogin();
+      }
+    });
+
+    googleSignInBtn.addEventListener("click", async () => {
+      clearError();
+
+      try {
+        await signInWithGoogle();
+        redirectAfterLogin();
+      } catch (error) {
+        showError(getSignInErrorMessage(error));
+      }
+    });
+
+    emailSignInForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearError();
+
+      const email = signInEmail.value.trim();
+      const password = signInPassword.value;
+
+      try {
+        if (isSignUp) {
+          const displayName = signUpName.value.trim();
+          await signUpWithEmail(email, password, displayName);
+          window.location.href = "/profile";
+          return;
+        }
+
+        await signInWithEmail(email, password);
+        redirectAfterLogin();
+      } catch (error) {
+        showError(getSignInErrorMessage(error));
+      }
+    });
+  </script>
+</body>
+</html>

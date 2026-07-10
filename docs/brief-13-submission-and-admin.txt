@@ -1,0 +1,121 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 13 — SUBMISSION FLOW AND ADMIN REVIEW QUEUE
+
+Wire up the submit form to Firestore, build the admin review queue page, and set up email notifications. This brief has two parts: the Cursor code changes and the Make automation setup instructions you do manually.
+
+PART A — SUBMIT FORM TO FIRESTORE
+
+In /submit/index.html the form currently has no submit action. Wire it up to write to Firestore.
+
+Import submitSpot from db.js and onAuthChange from auth.js at the bottom of the submit page body in a module script tag.
+
+When the submit button is clicked prevent the default form behavior and collect all field values into a spotData object with these fields:
+
+name — from the name input
+city — from the city select, convert to slug format: "new-york" or "los-angeles"
+type — from the type select, convert to slug format: "cafe", "library", "hotel-lobby", "co-working", "park", "other"
+address — from the address input
+attributes — array of all active attribute chip values
+noiseLevel — value of the active noise level chip
+costToSit — value of the active cost chip
+wifiNetwork — from wifi network input
+wifiPassword — from wifi password input
+wifiSpeed — value of the active wifi speed chip
+bathroomAvailable — true if yes chip is active, false if no chip is active
+bathroomCode — from bathroom code input
+bathroomNotes — from bathroom notes input
+notes — from the notes textarea
+submitterEmail — from Firebase Auth current user email if logged in, or empty string
+submitterName — from Firebase Auth current user displayName if logged in, or empty string
+photos — empty array for now, photo upload handled separately
+status — "pending"
+createdAt — current timestamp
+
+Call submitSpot with the spotData object.
+
+Show a loading state on the submit button while the write is in progress — change button text to "Submitting..." and disable the button.
+
+On success show a confirmation screen replacing the form. The confirmation screen: max-width 480px, margin 0 auto, text-align center, padding 4rem 2rem. A large red pin SVG icon at 48px. An h2 "Spot submitted." — font-size var(--text-2xl), font-weight var(--weight-light), letter-spacing -1px, margin 1rem 0 0.5rem. A p "We'll review it and let you know when it goes live." — font-size var(--text-md), color var(--color-ink-muted). A link back to /explore/index.html — "Back to the map" — styled as a black button, padding 10px 24px, background var(--color-ink), color var(--color-surface), border-radius var(--radius-md), no underline, font-size var(--text-sm), display inline-block, margin-top 1.5rem.
+
+On error show an error message below the submit button: "Something went wrong. Please try again." — font-size var(--text-sm), color var(--color-pin).
+
+PART B — ADMIN REVIEW QUEUE PAGE
+
+Build the admin review queue at /admin/queue/index.html. This page is for your eyes only — it has no auth protection for now (that gets added in Brief 17 pre-launch hardening). Keep it bookmarked and don't share the URL.
+
+Page layout: max-width 900px, margin 0 auto, padding 2rem.
+
+Page header: an h1 "Review queue" — font-size var(--text-2xl), font-weight var(--weight-light), letter-spacing -1px. A p below showing the count of pending submissions.
+
+Import db from firebase.js and getDocs, collection, query, where, updateDoc, doc from Firestore at the top of the page script.
+
+On page load query the submissions collection where status equals "pending" ordered by createdAt ascending (oldest first). Render each submission as a review card.
+
+Review card: background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-xl), padding 1.25rem, margin-bottom 12px, display flex, flex-direction column, gap 12px.
+
+Card header: display flex, justify-content space-between, align-items flex-start, flex-wrap wrap, gap 8px. Left: the submitted spot name in font-size var(--text-lg), font-weight var(--weight-medium), letter-spacing -0.3px. Right: submission date in font-size var(--text-sm), color var(--color-ink-muted).
+
+Card details grid: display grid, grid-template-columns repeat auto-fit minmax 160px 1fr, gap 8px. Show these fields each as a small detail card with a label and value (same attr-card styles from place detail): City, Type, Address, Wifi network, Wifi speed, Noise level, Cost, Bathroom.
+
+Notes section if notes field is not empty: a blockquote styled with left border 3px solid var(--color-border), padding-left 12px, font-size var(--text-sm), color var(--color-ink-secondary), font-style italic, margin 0.
+
+Submitter row: "Submitted by" followed by submitter email — font-size var(--text-sm), color var(--color-ink-muted).
+
+Action row: display flex, gap 8px, justify-content flex-end.
+
+Three buttons:
+
+Approve button: background var(--color-wifi-great) which is #27A56B, color white, padding 8px 18px, border-radius var(--radius-md), border none, cursor pointer, font-size var(--text-sm), font-weight var(--weight-medium), font-family inherit.
+
+Reject button: background transparent, color var(--color-ink-muted), border var(--border-hairline), padding 8px 18px, border-radius var(--radius-md), cursor pointer, font-size var(--text-sm), font-family inherit.
+
+Edit and approve button: background var(--color-ink), color var(--color-surface), padding 8px 18px, border-radius var(--radius-md), border none, cursor pointer, font-size var(--text-sm), font-family inherit.
+
+APPROVE ACTION
+
+When approve is clicked:
+
+Create a new document in the listings collection with all fields from the submission plus: status set to "approved", slug auto-generated from the name (lowercase, spaces to hyphens, remove special characters), lat and lng set to 0 for now (you will update coordinates manually in Firestore after approval), featured set to false, photos set to empty array.
+
+Update the submission document status to "approved".
+
+Remove the card from the queue view with a fade out animation.
+
+Show a brief success toast at the top of the page: "Spot approved and added to listings." — green background, white text, padding 10px 20px, border-radius var(--radius-md), position fixed top 20px right 20px, z-index 200, disappears after 3 seconds.
+
+REJECT ACTION
+
+When reject is clicked: update the submission document status to "rejected". Remove the card from the queue view. Show a toast "Submission rejected."
+
+EMPTY STATE
+
+If no pending submissions show: a centered div with padding 4rem, a pin icon at 32px color var(--color-ink-faint), and text "Queue is empty. You're all caught up." — font-size var(--text-md), color var(--color-ink-muted), margin-top 1rem.
+
+PART C — MAKE AUTOMATION SETUP (manual steps, not Cursor)
+
+These are instructions for you to set up in Make.com after the Cursor code is complete. Cursor does not do these steps.
+
+Go to make.com and create a free account. Create a new scenario.
+
+AUTOMATION 1 — New submission notification
+
+Trigger: Watch Documents in Firestore. Collection: submissions. Filter: status equals "pending".
+Action: Send an email via Gmail or any email module. To: your email address. Subject: "New WF-Here submission — SPOT NAME". Body: include the spot name, city, address, wifi network, and submitter email from the Firestore document. This email is your signal to go review the queue.
+
+AUTOMATION 2 — Approval notification to submitter
+
+Trigger: Watch Documents in Firestore. Collection: submissions. Filter: status changes to "approved". Condition: submitterEmail is not empty.
+Action: Send an email via Loops or Gmail. To: the submitterEmail field from the document. Subject: "Your spot is on the map — wf—here". Body: "Good news. SPOT NAME has been reviewed and is now live on wf—here. Check it out at wf-here.com/place/index.html?slug=SLUG. Thanks for contributing." Replace SPOT NAME and SLUG with values from the Firestore document.
+
+WHAT TO DELIVER FROM CURSOR
+
+Submit form writing to Firestore submissions collection on submit. Success confirmation screen after submission. Error handling on submit. Admin review queue at /admin/queue/index.html showing all pending submissions. Approve action creating a listing document and updating submission status. Reject action updating submission status. Toast notifications. Empty state. No console errors.
+
+----------------------------------------------------------------
+
+QA — open /submit/index.html. Fill in all fields. Click submit this spot. Confirm the success screen appears. Open your Firestore console and confirm a new document appeared in the submissions collection with status "pending". Open /admin/queue/index.html and confirm the submission card appears. Click approve and confirm a new document appears in the listings collection in Firestore and the card disappears from the queue. Then set up the two Make automations manually and test by submitting another spot — confirm you receive the notification email.

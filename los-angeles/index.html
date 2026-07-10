@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>best places to work remotely in Los Angeles · wf—here</title>
+  <meta name="description" content="Find the best cafes, libraries, and public spaces to work from in Los Angeles. Curated workspaces with great wifi, good food, and the right vibe.">
+  <meta property="og:title" content="Best places to work remotely in Los Angeles — wf—here">
+  <meta property="og:description" content="Curated workspaces across LA. Great wifi, real reviews, insider info.">
+  <meta property="og:image" content="/assets/og-los-angeles.png">
+  <meta property="og:url" content="https://wf-here.com/los-angeles">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/los-angeles">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/los-angeles">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/los-angeles"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+
+  <main class="city-page">
+    <section class="city-hero">
+      <p class="eyebrow">Los Angeles</p>
+      <h1 class="city-hero-title">Find somewhere worth working from in Los Angeles.</h1>
+      <p class="city-hero-copy">LA is the distributed city — neighbourhoods are their own worlds, commutes are brutal, and the café culture is genuinely world-class. The challenge is not finding a good spot, it is knowing which ones have the wifi that can handle a Zoom call and won't kick you out after an hour.</p>
+      <a class="city-hero-cta" href="/explore/los-angeles">Explore the Los Angeles map</a>
+    </section>
+
+    <section class="neighborhood-guide">
+      <h2 class="city-section-title">By neighborhood</h2>
+      <div class="neighborhood-grid" id="neighborhoodGrid"></div>
+    </section>
+
+    <section class="featured-spots">
+      <h2 class="city-section-title">Top picks right now</h2>
+      <p class="city-section-sub">Curated by the wf—here team. Updated as we find new spots.</p>
+      <div id="cityFeaturedList"></div>
+      <a class="city-see-all" href="/explore/los-angeles">See all Los Angeles spots</a>
+    </section>
+
+    <section class="city-editorial">
+      <h2 class="city-section-title">Working in Los Angeles</h2>
+      <p>Working in Los Angeles means accepting that your office will change depending on where you are that day. The city rewards flexibility. A meeting in Culver City, a focus block in Silver Lake, a late afternoon in Venice — each neighbourhood has its version of the right spot.</p>
+      <p>The key variables in LA are parking, wifi reliability, and noise. Hotel lobbies in DTLA and Santa Monica are underused gold mines. The café culture in Silver Lake and Los Feliz is strong but competitive — arrive before 9am or accept that you are getting the table by the bathroom. Venice has the best combination of outdoor seating and fast wifi of any neighbourhood in the city.</p>
+      <p>wf—here maps the spots that actually work. Every listing is reviewed and verified. The wifi speeds are real. The bathroom codes are current. No guesswork.</p>
+    </section>
+
+    <div class="cta-band" style="margin-top: 4rem;">
+      <div>
+        <p class="cta-title">Know a Los Angeles spot we missed?</p>
+        <p class="cta-copy">Submit it and help the map grow.</p>
+      </div>
+      <a class="cta-link" href="/submit">Submit a spot ↗</a>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <img class="footer-logo" src="/assets/logo-primary.svg" alt="wf—here" height="20">
+    <div class="footer-links">
+      <a href="/explore/los-angeles">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a href="/">about</a>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { initCityPage } from "/js/city-page.js";
+
+    initCityPage({
+      citySlug: "los-angeles",
+      explorePath: "/explore/los-angeles",
+      emptyListingsMessage: "LA listings coming soon. Know a great spot? Submit it.",
+      emptyListingsCta: "Submit a spot",
+      neighborhoods: [
+        { name: "Silver Lake", description: "creative crowd, great coffee, good wifi", slug: "silver-lake" },
+        { name: "Venice", description: "beach energy, startup crowd, strong signal", slug: "venice" },
+        { name: "Culver City", description: "industry adjacent, quiet spots, all day wifi", slug: "culver-city" },
+        { name: "DTLA", description: "hotel lobbies, co-working spillover, urban energy", slug: "dtla" },
+        { name: "Los Feliz", description: "neighbourhood cafes, low key, laptop friendly", slug: "los-feliz" },
+        { name: "Santa Monica", description: "beachside focus, plenty of spots, tourist-proof", slug: "santa-monica" }
+      ]
+    });
+  </script>
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 16 — VERCEL DEPLOYMENT AND CUSTOM DOMAIN
+
+Deploy WF-Here to Vercel and connect the wf-here.com domain. This brief is mostly steps you do manually in Vercel and your domain registrar — Cursor handles the configuration files.
+
+PART A — CURSOR TASKS
+
+CREATE VERCEL CONFIGURATION FILE
+
+Create a file called vercel.json in the project root with this content:
+
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/explore/:city", "destination": "/explore/index.html" },
+    { "source": "/place/:slug", "destination": "/place/index.html" },
+    { "source": "/new-york", "destination": "/new-york/index.html" },
+    { "source": "/los-angeles", "destination": "/los-angeles/index.html" },
+    { "source": "/submit", "destination": "/submit/index.html" },
+    { "source": "/login", "destination": "/login/index.html" },
+    { "source": "/profile", "destination": "/profile/index.html" },
+    { "source": "/for-businesses", "destination": "/for-businesses/index.html" },
+    { "source": "/admin/queue", "destination": "/admin/queue/index.html" },
+    { "source": "/admin/listings", "destination": "/admin/listings/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/css/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/js/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}
+
+This file does three things. cleanUrls removes the .html extension from all URLs so /place/index.html becomes /place. The rewrites make clean URLs work correctly. The headers add basic security and caching.
+
+UPDATE ALL INTERNAL LINKS
+
+Now that cleanUrls is enabled update every internal link and navigation href across all HTML files to use the clean URL format without .html or /index.html:
+
+/index.html becomes /
+/explore/index.html becomes /explore/new-york (or /explore/los-angeles)
+/place/index.html becomes /place (the slug is added as a query parameter)
+/submit/index.html becomes /submit
+/login/index.html becomes /login
+/profile/index.html becomes /profile
+/for-businesses/index.html becomes /for-businesses
+/new-york/index.html becomes /new-york
+/los-angeles/index.html becomes /los-angeles
+/admin/queue/index.html becomes /admin/queue
+/admin/listings/index.html becomes /admin/listings
+
+Update every anchor href, every JavaScript window.location assignment, every redirect, and every sessionStorage URL stored for redirect-after-login. Also update the place detail URL format from /place/index.html?slug=SLUG to /place?slug=SLUG.
+
+CREATE ROBOTS.TXT
+
+Create a file called robots.txt in the project root:
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin/queue
+Disallow: /admin/listings
+
+Sitemap: https://wf-here.com/sitemap.xml
+
+This tells search engines to index the whole site except the admin pages.
+
+CREATE SITEMAP.XML
+
+Create a file called sitemap.xml in the project root:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://wf-here.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://wf-here.com/new-york</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wf-here.com/los-angeles</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wf-here.com/explore/new-york</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wf-here.com/explore/los-angeles</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wf-here.com/submit</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://wf-here.com/for-businesses</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+</urlset>
+
+WHAT TO DELIVER FROM CURSOR
+
+vercel.json in project root. robots.txt in project root. sitemap.xml in project root. All internal links updated to clean URL format across every HTML and JS file. Confirm no broken links or redirects after the changes.
+
+PART B — MANUAL VERCEL STEPS (not Cursor)
+
+Do these steps yourself after Cursor delivers Part A.
+
+Step 1 — Push to GitHub. If you have not already set up a GitHub repo, create one at github.com named wf-here. Push your entire project folder to the main branch. If you need help with this tell Cursor: "Help me push this project to a new GitHub repository called wf-here." and it will walk you through the git commands.
+
+Step 2 — Import to Vercel. Go to vercel.com. Click New Project. Click Import Git Repository. Select your wf-here GitHub repo. Framework Preset: leave as Other. Root Directory: leave as default. Click Deploy. Vercel will build and deploy — takes about 30 seconds. You will get a live URL like wf-here.vercel.app.
+
+Step 3 — Add environment variables. In Vercel go to your project Settings then Environment Variables. Add these variables so your Firebase config is not hardcoded in the JS files (Cursor will update firebase.js to read from these in the next step):
+
+VITE_FIREBASE_API_KEY — your Firebase apiKey value
+VITE_FIREBASE_AUTH_DOMAIN — your Firebase authDomain value
+VITE_FIREBASE_PROJECT_ID — your Firebase projectId value
+VITE_FIREBASE_MESSAGING_SENDER_ID — your Firebase messagingSenderId value
+VITE_FIREBASE_APP_ID — your Firebase appId value
+VITE_MAPBOX_TOKEN — your Mapbox public token
+
+Step 4 — Connect custom domain. In Vercel go to your project Settings then Domains. Click Add Domain. Type wf-here.com and click Add. Vercel will show you DNS records to add. Go to wherever you bought the wf-here.com domain (your registrar). Find the DNS settings. Add the records Vercel shows you — usually an A record and a CNAME record. DNS propagation takes anywhere from a few minutes to 48 hours. Vercel will show a green checkmark when the domain is live.
+
+Step 5 — Update Firebase Auth authorized domains. Go to your Firebase console. Click Authentication then Settings then Authorized domains. Add wf-here.com to the list. Also add wf-here.vercel.app. Without this Google sign in will not work on the live domain.
+
+Step 6 — Update Mapbox allowed URLs. Go to your Mapbox account at account.mapbox.com. Click your token. Under Allowed URLs add https://wf-here.com and https://wf-here.vercel.app. Without this the map will not load on the live site.
+
+PART C — MOVE FIREBASE CONFIG TO ENVIRONMENT VARIABLES
+
+After adding environment variables to Vercel, tell Cursor: "Update /js/firebase.js to read the Firebase config values from Vercel environment variables instead of hardcoded strings. The variable names are VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_MESSAGING_SENDER_ID, and VITE_FIREBASE_APP_ID."
+
+Cursor will update firebase.js accordingly. Then redeploy by pushing a commit to GitHub — Vercel auto-deploys on every push.
+
+----------------------------------------------------------------
+
+QA — after completing all steps open wf-here.vercel.app in your browser. Confirm the site loads. Navigate to /explore/new-york and confirm the clean URL works without .html. Confirm the Mapbox map loads. Sign in with Google and confirm Firebase Auth works on the Vercel URL. Once the domain is connected open wf-here.com and confirm everything works there too. Check the browser console for any errors related to Firebase, Mapbox, or CORS. If you see CORS errors tell Cursor which error you see and it will fix the configuration.

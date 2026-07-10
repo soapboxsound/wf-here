@@ -1,0 +1,182 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 17 — PRE-LAUNCH HARDENING AND CHECKLIST
+
+This is the final brief before launch. It covers security rules, OG images, analytics, PWA setup, admin protection, and a full QA pass. Some steps are Cursor tasks, some are manual. Work through them in order.
+
+PART A — FIRESTORE SECURITY RULES (manual — do in Firebase console)
+
+Go to your Firebase console. Click Firestore Database then the Rules tab. Replace the current test mode rules with these production rules. Click Publish after pasting.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /listings/{listing} {
+      allow read: if resource.data.status == 'approved';
+      allow write: if false;
+    }
+
+    match /submissions/{submission} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    match /savedSpots/{savedSpot} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    match /featuredLeads/{lead} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    match /removalRequests/{request} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+  }
+}
+
+These rules mean: anyone can read approved listings. Nobody can write listings directly from the client. Anyone can submit a spot or a lead form. Only the owner can read and modify their own saved spots. Admin operations on submissions happen through the Firebase console directly, not through client code.
+
+IMPORTANT — after publishing these rules the admin queue page will stop working because the rules block reading submissions from the client. To fix this tell Cursor: "Update /admin/queue/index.html to use the Firebase Admin SDK via a Vercel serverless function instead of reading Firestore directly from the browser. Create a Vercel API route at /api/admin/submissions.js that returns pending submissions, protected by a hardcoded admin password stored as a Vercel environment variable called ADMIN_PASSWORD."
+
+PART B — CURSOR TASKS
+
+OG IMAGES
+
+Create two OG image HTML files that we will screenshot to create the actual PNG files:
+
+/assets/og-new-york.html and /assets/og-los-angeles.html.
+
+Each file is a self-contained 1200x630px HTML page styled to look like a branded image. No external dependencies.
+
+New York OG image: black background (#111111), the primary logo SVG centered horizontally at top third, below it the text "Find somewhere worth working from in New York." in white at 40px weight light, below that "wf-here.com" in the muted gray (#666666) at 18px. The red pin color (#E8281A) used as a subtle horizontal accent line between the logo and text.
+
+Los Angeles version: same layout, replace "New York" with "Los Angeles".
+
+After creating these files take a screenshot of each at exactly 1200x630px and save as /assets/og-new-york.png and /assets/og-los-angeles.png. If Cursor cannot take screenshots leave the HTML files and add a comment that the PNGs need to be generated manually by opening the HTML file in a browser at 1200x630 and screenshotting.
+
+PWA SETUP — MAKE THE SITE INSTALLABLE
+
+Create /manifest.json in the project root:
+
+{
+  "name": "wf—here",
+  "short_name": "wf—here",
+  "description": "Find workspaces with great wifi and the right vibe.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F8F6",
+  "theme_color": "#111111",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ]
+}
+
+Add these tags to the head of every HTML page:
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="wf—here">
+<link rel="apple-touch-icon" href="/assets/app-icon.png">
+
+Create /sw.js (service worker) in the project root. The service worker caches the core assets so the site loads offline or on slow connections. Cache these files on install: /, /explore/new-york, /css/tokens.css, /css/global.css, /css/components.css, /js/main.js, /js/firebase.js, /js/auth.js, /js/db.js, /js/components.js, /js/pins.js, /js/nav-auth.js, /assets/logo-primary.svg, /assets/logo-secondary.svg, /assets/favicon.png.
+
+Use a cache-first strategy for assets and a network-first strategy for HTML pages. Cache name: "wf-here-v1".
+
+Register the service worker in /js/main.js: if "serviceWorker" in navigator then register /sw.js on window load.
+
+ANALYTICS — PLAUSIBLE
+
+Add Plausible analytics to every HTML page head. After signing up at plausible.io and adding wf-here.com as a site, add this script tag:
+
+<script defer data-domain="wf-here.com" src="https://plausible.io/js/script.js"></script>
+
+Add a comment above it: replace with your actual Plausible script tag from your Plausible dashboard.
+
+ADMIN PAGE PROTECTION
+
+Add basic password protection to /admin/queue/index.html and /admin/listings/index.html.
+
+At the very top of each admin page body before any content add a div with id "adminGate": a centered div, background var(--color-surface), padding 3rem, max-width 360px, margin 4rem auto. An h2 "Admin access" — font-size var(--text-xl), font-weight var(--weight-light), margin-bottom 1rem. A password input with id "adminPasswordInput" — same input styles. A button "Enter" with id "adminEnterBtn" — black button styles.
+
+Set the correct password as a constant in the page script: const ADMIN_PASSWORD = "CHANGE_THIS_TO_YOUR_PASSWORD". Replace this with a real password before launch.
+
+On page load check sessionStorage for "adminAuthenticated" equals "true". If found hide the admin gate and show the page content. If not found hide all page content and show only the admin gate.
+
+When enter is clicked compare the input value to ADMIN_PASSWORD. If correct store "adminAuthenticated" in sessionStorage and hide the gate and show content. If wrong show an error "Incorrect password." in red text below the input.
+
+Note: this is basic client-side protection — good enough for a personal admin panel. Do not use this for anything sensitive. The Firestore security rules from Part A provide the real protection.
+
+FINAL HTML CLEANUP
+
+Review every HTML page and make these fixes:
+
+Remove the seed button from index.html if it is still there.
+
+Remove any demo sections left over from Phase 1 briefs if any remain.
+
+Add lang="en" to the html tag on every page if not already present.
+
+Add a 404 page. Create /404.html with the standard nav and a centered message: a large red pin SVG at 48px, an h1 "This spot doesn't exist." in font-size var(--text-2xl) weight light, a p "It may have moved or been removed." in muted color, and a link "Back to the map" going to /explore/new-york in black button style.
+
+Add this to vercel.json inside the root object:
+"404": "/404.html"
+
+PERFORMANCE CHECKS — tell Cursor to do these
+
+Confirm all images have alt attributes. Confirm all buttons have either text content or an aria-label attribute. Confirm all form inputs have associated label elements. Confirm there are no console errors on any page. Confirm the page title is unique and descriptive on every page. Add a skip-to-content link at the very top of every page body for accessibility: a visually hidden anchor that becomes visible on focus, linking to a main element with id "main-content". Wrap the main content of each page in a main element with id "main-content".
+
+WHAT TO DELIVER FROM CURSOR
+
+vercel.json updated with 404 page. /manifest.json created. PWA meta tags added to all pages. /sw.js service worker created. Service worker registered in main.js. OG image HTML files created. Admin password gate on both admin pages. 404 page created. Plausible script tag placeholder added to all pages. Final HTML cleanup done. Accessibility improvements applied. No console errors on any page.
+
+----------------------------------------------------------------
+
+LAUNCH CHECKLIST — do these manually before going live
+
+Content: you have at least 30 approved NYC listings in Firestore with real lat/lng coordinates filled in.
+
+Firestore: security rules are published and you have verified they work by testing that a non-logged-in user cannot read a pending submission directly.
+
+Firebase Auth: wf-here.com is in the authorized domains list.
+
+Mapbox: wf-here.com is in the allowed URLs list.
+
+Vercel: wf-here.com domain is connected and showing green in the Vercel dashboard.
+
+OG images: both PNG files exist in /assets/ and the meta tags reference them correctly. Test by pasting wf-here.com into opengraph.xyz to preview how it looks when shared on social.
+
+Make automations: both automations are active and you have tested them end to end.
+
+Admin password: you have changed the default admin password to something real.
+
+Plausible: you have added your real Plausible script tag and verified it is tracking in the Plausible dashboard.
+
+PWA: you have tested installing the site to your iPhone home screen by opening wf-here.com in Safari then tapping Share then Add to Home Screen. The wf—here icon should appear.
+
+Mobile QA: you have tested every page on a real iPhone at 390px width. All interactions work with your thumb. No horizontal scroll. Bottom nav is visible and functional.
+
+404: you have tested that going to wf-here.com/doesnotexist shows your custom 404 page.
+
+When all items on this checklist are checked off — you are live. Ship it.

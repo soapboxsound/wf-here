@@ -1,0 +1,145 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 9 — SUBMIT A SPOT PAGE
+
+Build the submit a spot page at /submit/index.html. The nav component is already in the file. Modify the nav and add all content below it. All CSS in /css/components.css plus a style tag in the page head for layout.
+
+MODIFIED NAV FOR SUBMIT PAGE
+
+Left side: back arrow linking to /index.html — same style as the place detail page back arrow but text says "back". Center: primary logo linking to /index.html. Right side: sign in button.
+
+PAGE BODY
+
+A div with class "submit-body". Max-width 580px, margin 0 auto, padding 2.5rem 2rem 4rem.
+
+PAGE HEADER
+
+Eyebrow p tag: "submit a spot". Same eyebrow styles used on homepage.
+
+H1: "Know somewhere" line break "worth working from?" — 36px, weight light, letter-spacing -1.5px, line-height 1.15, margin-bottom 0.5rem.
+
+Sub p tag: "Tell us about it. If it passes the vibe check it goes on the map — and you get the credit." — font-size var(--text-md), color var(--color-ink-muted), line-height 1.6, margin-bottom 2.5rem.
+
+PROGRESS BAR
+
+A div with class "progress-bar". Display flex, align-items center, margin-bottom 2.5rem.
+
+Four steps. Each step is a div with class "prog-step" containing a circle div and a label span.
+
+Between each step is a div with class "prog-line": flex 1, height 0.5px, background var(--color-border), margin 0 8px.
+
+Circle styles: width 24px, height 24px, border-radius 50%, display flex, align-items center, justify-content center, font-size var(--text-xs), font-weight var(--weight-medium), flex-shrink 0.
+
+Active circle (class "prog-active"): background var(--color-pin), color white.
+Done circle (class "prog-done"): background var(--color-ink), color var(--color-surface).
+Todo circle (class "prog-todo"): background var(--color-surface-sunken), color var(--color-ink-faint), border var(--border-hairline).
+
+Label styles: font-size var(--text-sm), margin-left 6px, white-space nowrap.
+Active label: color var(--color-ink), font-weight var(--weight-medium).
+Todo label: color var(--color-ink-muted).
+
+Four steps: 1 "the place" (active), 2 "the details" (todo), 3 "wifi + access" (todo), 4 "photos" (todo).
+
+FORM FIELDS COMMON STYLES
+
+Field labels: display block, font-size var(--text-sm), font-weight var(--weight-medium), color var(--color-ink), margin-bottom 6px.
+
+Field hints below labels: display block, font-size var(--text-xs), color var(--color-ink-faint), margin-bottom 6px.
+
+Text inputs: width 100%, padding 10px 12px, font-size var(--text-md), color var(--color-ink), background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-lg), outline none, font-family inherit. Focus: border-color var(--color-ink-secondary).
+
+Select inputs: same as text inputs, appearance none, cursor pointer.
+
+Textareas: same as text inputs, resize vertical, min-height 80px, line-height 1.6.
+
+Form sections separated by horizontal rules: border none, border-top var(--border-hairline), margin 1.75rem 0.
+
+STEP 1 FIELDS — THE PLACE
+
+These fields are visible by default.
+
+Field: "Name of the place" — text input, placeholder "e.g. Ludlow Coffee Supply".
+
+Two column row — display grid, grid-template-columns 1fr 1fr, gap 10px:
+Left: "City" select with options New York and Los Angeles.
+Right: "Type of place" select with options Café, Library, Hotel lobby, Co-working, Park or outdoor, Other.
+
+Field: "Address" — text input, placeholder "Start typing to search…".
+
+Horizontal rule.
+
+Field group: "What makes it good for working?" with hint "Pick all that apply". Chip group using multi-select attributes chips. Chips: fast wifi, outlets everywhere, quiet, good food, good coffee, open late, outdoor seating, natural light, free to sit, laptop friendly.
+
+Field group: "Noise level". Single select chip group. Chips: library quiet, moderate, lively, loud.
+
+Field group: "Cost to sit". Single select chip group. Chips: completely free, buy something, paid or membership.
+
+Horizontal rule.
+
+STEP 3 FIELDS — WIFI AND ACCESS
+
+These follow the step 1 fields. On mobile they will be hidden until step 3 is reached but on desktop all steps are visible.
+
+Wifi section label: "Wifi".
+
+A div with class "wifi-input-card". Background var(--color-surface-raised), border var(--border-hairline), border-radius 10px, overflow hidden.
+
+Three rows inside, each with display flex, align-items center, border-bottom var(--border-hairline). Last row no border-bottom.
+
+Row 1: A span "Network name" (font-size var(--text-sm), color var(--color-ink-muted), padding 10px 14px, min-width 110px, border-right var(--border-hairline)). An input with placeholder "e.g. LudlowCoffee_Guest" (flex 1, padding 10px 12px, border none, background transparent, outline none, font-family inherit, font-size var(--text-sm)).
+
+Row 2: A span "Password" (same label styles). An input with placeholder "Leave blank if open network" (same input styles).
+
+Row 3: A span "Speed" (same label styles). A div with class "wifi-speed-opts" containing four buttons for the wifi speed chip group: slow, decent, fast, blazing. Padding 8px 12px, flex 1, display flex, gap 6px. Use special active colors for speed chips as defined in Brief 5.
+
+Bathroom section label: "Bathroom".
+
+A div with class "bathroom-input-card". Same card styles as wifi-input-card.
+
+Row 1: A span "Available?" (same label styles). A div with two small chip buttons — "yes" (active by default) and "no" — inside, padding 8px 12px, flex 1, display flex, gap 8px.
+
+Row 2: A span "Code or key?" (same label styles). An input with placeholder "e.g. 4281 or ask at counter".
+
+Row 3: A span "Notes" (same label styles). An input with placeholder "e.g. single stall, very clean".
+
+Horizontal rule.
+
+STEP 4 FIELDS — PHOTOS
+
+Photo upload zone: a div with class "photo-upload". Background var(--color-surface-raised), border 0.5px dashed var(--color-border), border-radius var(--radius-xl), padding 2rem, display flex, flex-direction column, align-items center, gap 8px, cursor pointer. Hover: border-color var(--color-ink-muted), background var(--color-surface).
+
+Inside: an icon with class "ti ti-photo-plus" at font-size 28px color var(--color-ink-faint), a p tag "Tap to add photos" (font-size var(--text-sm), color var(--color-ink-muted)), a p tag "JPG or PNG · up to 5 photos · 10MB each" (font-size var(--text-xs), color var(--color-ink-faint)).
+
+Optional notes field:
+
+Label: "Anything else worth knowing?"
+Hint: "Optional — but the good stuff lives here."
+Textarea placeholder: "e.g. Gets crowded after 10am. Best seats are at the back by the window. They don't mind if you stay all day."
+
+SUBMIT BUTTON
+
+A button with class "submit-btn". Width 100%, padding 14px, background var(--color-pin), color white, border none, border-radius 10px, font-size 15px, font-weight var(--weight-regular), cursor pointer, font-family inherit, letter-spacing -0.2px, display flex, align-items center, justify-content center, gap 8px, margin-top 2rem.
+
+Contains: inline SVG pin icon at width 12px height 17px with white fill using the WF-Here pin path, and the text "submit this spot".
+
+Note below button: "Every submission is reviewed before it goes live. We'll let you know when yours is on the map." — font-size var(--text-xs), color var(--color-ink-faint), text-align center, margin-top 10px, line-height 1.6.
+
+MULTI-STEP BEHAVIOR ON MOBILE
+
+On desktop all fields are visible as a single scrolling form. On mobile below 768px show only one step at a time.
+
+Step 1 fields visible, steps 2 through 4 hidden. The submit button is replaced by a "next — the details ↗" button (same red style) that advances to step 2. Step 2 is not built yet — for now clicking next just advances the progress bar visually and shows a placeholder for step 2. Steps 3 and 4 fields slide in as the user progresses.
+
+Back navigation on mobile: add a back arrow to the top of the form that goes to the previous step (not the previous page). On step 1 the back arrow goes to the previous page.
+
+WHAT TO DELIVER
+
+Complete submit page. All fields and chip groups working. Bathroom yes or no toggle working. Wifi speed chips working with special colors. Photo upload hover state working. Multi-step behavior on mobile. Submit button styled correctly. No console errors.
+
+----------------------------------------------------------------
+
+QA — open /submit/index.html. You should see the progress bar at the top with step 1 active in red. Scroll down and confirm all field groups, chip groups, the wifi card, bathroom card, photo upload zone, and submit button are visible and styled correctly. Click chips in each group and confirm they toggle correctly. On mobile resize to 390px and confirm only step 1 fields are visible. Click the next button and confirm the progress bar advances to step 2.

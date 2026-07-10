@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>place · wf—here</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    .place-content {
+      max-width: var(--content-max-width);
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .place-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .place-content {
+        grid-template-columns: 1fr;
+        padding-bottom: calc(var(--bottom-nav-height) + 84px);
+      }
+    }
+
+    .wifi-pw-value {
+      flex: 1;
+      padding: 5px 10px;
+      border: var(--border-hairline);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-ink);
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+    }
+
+    .wifi-pw-open {
+      flex: 1;
+      color: var(--color-ink-muted);
+      font-size: var(--text-sm);
+      font-style: italic;
+    }
+
+    .wifi-password-revealed {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="place-back-link" href="/explore/new-york" id="placeBackLink"><i class="ti ti-arrow-left"></i><span id="placeBackLabel">New York</span></a>
+    <a class="place-share-link" href="/">share</a>
+    <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+      <span id="navUserName"></span>
+      <a href="#" id="navSignOut">sign out</a>
+    </div>
+    <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+  <div class="place-hero">
+    <div class="place-hero-main"><i class="ti ti-photo"></i></div>
+    <div class="place-hero-grid">
+      <div class="place-hero-thumb"></div>
+      <div class="place-hero-thumb"></div>
+      <div class="place-hero-thumb"></div>
+      <div class="place-hero-thumb"></div>
+      <div class="place-photo-count">8 photos</div>
+    </div>
+  </div>
+  <div class="place-content">
+    <main class="place-main">
+      <div class="spot-header">
+        <p class="spot-location-line" id="placeLocationLine">café · Lower East Side, New York</p>
+        <h1 class="place-title" id="placeTitle">Ludlow Coffee Supply</h1>
+        <div class="place-meta-row">
+          <div class="spot-wifi"><span class="spot-wifi-dot" id="metaWifiDot"></span><span id="metaWifiLabel">great wifi</span></div>
+          <span class="meta-separator">·</span>
+          <span class="meta-open">open now</span>
+          <span class="meta-separator">·</span>
+          <span class="meta-muted" id="metaHours">closes 6pm</span>
+          <span class="meta-separator">·</span>
+          <span class="meta-muted" id="metaCost">free to sit</span>
+        </div>
+      </div>
+
+      <section>
+        <p class="section-label">The details</p>
+        <div class="details-grid">
+          <div class="attr-card"><p class="attr-label">Wifi speed</p><p class="attr-value is-positive" id="detailWifiSpeed">Fast · 85 Mbps</p></div>
+          <div class="attr-card"><p class="attr-label">Noise level</p><p class="attr-value" id="detailNoiseLevel">Quiet to moderate</p></div>
+          <div class="attr-card"><p class="attr-label">Power outlets</p><p class="attr-value is-positive" id="detailOutlets">Plenty</p></div>
+          <div class="attr-card"><p class="attr-label">Food and drinks</p><p class="attr-value is-positive" id="detailFood">Coffee + food</p></div>
+          <div class="attr-card"><p class="attr-label">Seating</p><p class="attr-value" id="detailSeating">Tables + bar</p></div>
+          <div class="attr-card"><p class="attr-label">Cost to sit</p><p class="attr-value" id="detailCost">Free · buy something</p></div>
+          <div class="attr-card"><p class="attr-label">Hours</p><p class="attr-value" id="detailHours">7am - 6pm daily</p></div>
+          <div class="attr-card"><p class="attr-label">Bathrooms</p><p class="attr-value is-positive" id="detailBathroom">Yes · clean</p></div>
+        </div>
+      </section>
+
+      <section>
+        <p class="section-label">Wifi</p>
+        <div class="wifi-card">
+          <div class="wifi-card-header">
+            <div class="wifi-network"><span class="spot-wifi-dot" id="wifiCardDot" style="background: var(--color-wifi-great);"></span><span id="wifiNetwork">LudlowCoffee_Guest</span></div>
+            <div class="wifi-speed" id="wifiSpeed">85 Mbps · great</div>
+          </div>
+          <div class="wifi-password-row">
+            <div class="wifi-password-label">Password</div>
+            <div class="wifi-pw-locked" id="wifiPasswordContent">
+              <i class="ti ti-lock"></i><span>sign in to reveal</span>
+            </div>
+          </div>
+          <div class="login-nudge" id="loginNudge">
+            <p>Create a free account to see wifi passwords</p>
+            <button class="inline-action" id="wifiSignInBtn" type="button">sign in ↗</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <p class="section-label">Bathroom</p>
+        <div class="bathroom-card">
+          <div class="bathroom-card-header">
+            <div class="bathroom-card-main">
+              <i class="ti ti-door"></i>
+              <div>
+                <p class="bathroom-title">Single · gender neutral</p>
+                <p class="bathroom-subtitle" id="bathroomSubtitle">keypad code required</p>
+              </div>
+            </div>
+            <button class="reveal-button" id="revealBtn" type="button"><i class="ti ti-eye"></i><span>reveal code</span></button>
+          </div>
+          <div class="bathroom-revealed" id="bathroomRevealed">
+            <div class="code-display">
+              <div class="code-value" id="bathroomCodeValue">4281</div>
+              <button class="copy-button" id="copyBtn" type="button">copy</button>
+            </div>
+            <p class="bathroom-note"><i class="ti ti-info-circle"></i><span id="bathroomNote">codes change - verify with staff if this doesn't work</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <p class="section-label">The vibe</p>
+        <div class="vibe-tags" id="vibeTags">
+          <span class="chip">neighborhood gem</span>
+          <span class="chip">laptop friendly</span>
+          <span class="chip">good music</span>
+          <span class="chip">not too crowded</span>
+          <span class="chip">natural light</span>
+          <span class="chip">regulars crowd</span>
+        </div>
+      </section>
+
+      <section class="reviews-section">
+        <div class="reviews-header">
+          <p class="section-label" style="margin-bottom: 0;">Reviews</p>
+          <p class="review-count">12 reviews</p>
+        </div>
+        <div class="review-card">
+          <div class="review-head">
+            <div class="review-person">
+              <div class="review-avatar">JM</div>
+              <p class="review-name">Jamie M.</p>
+            </div>
+            <p class="review-date">2 weeks ago</p>
+          </div>
+          <p class="review-text">My go-to in the LES. Wifi never drops, there's always a seat at the bar if the tables are full, and nobody gives you a look for camping out for three hours.</p>
+          <div class="review-tags">
+            <span class="review-tag">great wifi</span>
+            <span class="review-tag">good seating</span>
+            <span class="review-tag">laptop friendly</span>
+          </div>
+        </div>
+        <div class="review-card">
+          <div class="review-head">
+            <div class="review-person">
+              <div class="review-avatar">SC</div>
+              <p class="review-name">Sara C.</p>
+            </div>
+            <p class="review-date">1 month ago</p>
+          </div>
+          <p class="review-text">Gets a little noisy around noon but clears up by 2pm. Coffee is genuinely good, which makes the whole thing better.</p>
+          <div class="review-tags">
+            <span class="review-tag">good coffee</span>
+            <span class="review-tag">gets busy midday</span>
+          </div>
+        </div>
+        <div class="review-placeholder">
+          <i class="ti ti-pencil"></i>
+          <p>Write a review - sign in first</p>
+        </div>
+      </section>
+
+      <p class="removal-note">Is this your business? <a href="/">Request removal ↗</a></p>
+    </main>
+
+    <aside class="place-sidebar">
+      <div class="action-card">
+        <button class="action-button action-button-primary" id="saveSpotBtn" type="button"><i class="ti ti-heart"></i><span>save this spot</span></button>
+        <button class="action-button action-button-secondary" type="button"><i class="ti ti-map-pin"></i><span>get directions</span></button>
+        <hr class="action-divider">
+        <div class="action-detail-row"><span class="action-detail-label">Address</span><span class="action-detail-value" id="sidebarAddress">154 Ludlow St</span></div>
+        <div class="action-detail-row"><span class="action-detail-label">Neighborhood</span><span class="action-detail-value" id="sidebarNeighborhood">Lower East Side</span></div>
+        <div class="action-detail-row"><span class="action-detail-label">Type</span><span class="action-detail-value" id="sidebarType">Café</span></div>
+        <div class="action-detail-row"><span class="action-detail-label">Price range</span><span class="action-detail-value">$</span></div>
+        <div class="map-thumb">
+          <svg class="map-thumb-pin" viewBox="0 0 14 22" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.13401 3.13401 0 7 0C10.866 0 14 3.13401 14 7C14 8.48601 13.519 9.85901 12.702 10.976L7 22L1.29799 10.976C0.480995 9.85901 0 8.48601 0 7ZM7 10C8.65685 10 10 8.65685 10 7C10 5.34315 8.65685 4 7 4C5.34315 4 4 5.34315 4 7C4 8.65685 5.34315 10 7 10Z" fill="#E8281A"/></svg>
+          <div class="map-thumb-badge">open map</div>
+        </div>
+        <p class="submitted-line">submitted by the community · verified by wf—here</p>
+      </div>
+    </aside>
+  </div>
+  <script type="module">
+    import { onAuthChange } from "/js/auth.js";
+    import { auth } from "/js/firebase.js";
+    import { getListing, isSpotSaved, saveSpot, unsaveSpot } from "/js/db.js";
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("slug");
+    const cityNames = {
+      "new-york": "New York",
+      "los-angeles": "Los Angeles"
+    };
+    const wifiStyles = {
+      fast: {
+        label: "great wifi",
+        color: "var(--color-wifi-great)"
+      },
+      blazing: {
+        label: "great wifi",
+        color: "var(--color-wifi-great)"
+      },
+      decent: {
+        label: "decent wifi",
+        color: "var(--color-wifi-decent)"
+      },
+      poor: {
+        label: "poor wifi",
+        color: "var(--color-wifi-poor)"
+      },
+      slow: {
+        label: "poor wifi",
+        color: "var(--color-wifi-poor)"
+      }
+    };
+
+    const placeBackLink = document.getElementById("placeBackLink");
+    const placeBackLabel = document.getElementById("placeBackLabel");
+    const placeLocationLine = document.getElementById("placeLocationLine");
+    const placeTitle = document.getElementById("placeTitle");
+    const metaWifiDot = document.getElementById("metaWifiDot");
+    const metaWifiLabel = document.getElementById("metaWifiLabel");
+    const metaHours = document.getElementById("metaHours");
+    const metaCost = document.getElementById("metaCost");
+    const detailWifiSpeed = document.getElementById("detailWifiSpeed");
+    const detailNoiseLevel = document.getElementById("detailNoiseLevel");
+    const detailOutlets = document.getElementById("detailOutlets");
+    const detailFood = document.getElementById("detailFood");
+    const detailSeating = document.getElementById("detailSeating");
+    const detailCost = document.getElementById("detailCost");
+    const detailHours = document.getElementById("detailHours");
+    const detailBathroom = document.getElementById("detailBathroom");
+    const wifiCardDot = document.getElementById("wifiCardDot");
+    const wifiNetwork = document.getElementById("wifiNetwork");
+    const wifiSpeed = document.getElementById("wifiSpeed");
+    const revealBtn = document.getElementById("revealBtn");
+    const bathroomRevealed = document.getElementById("bathroomRevealed");
+    const bathroomSubtitle = document.getElementById("bathroomSubtitle");
+    const bathroomCodeValue = document.getElementById("bathroomCodeValue");
+    const bathroomNote = document.getElementById("bathroomNote");
+    const copyBtn = document.getElementById("copyBtn");
+    const vibeTags = document.getElementById("vibeTags");
+    const sidebarAddress = document.getElementById("sidebarAddress");
+    const sidebarNeighborhood = document.getElementById("sidebarNeighborhood");
+    const sidebarType = document.getElementById("sidebarType");
+    const saveSpotBtn = document.getElementById("saveSpotBtn");
+    const wifiPasswordContent = document.getElementById("wifiPasswordContent");
+    const loginNudge = document.getElementById("loginNudge");
+    const wifiSignInBtn = document.getElementById("wifiSignInBtn");
+
+    let currentListing = null;
+    let currentBathroomCode = "";
+    let wifiPassword = "";
+
+    function updateSaveButton(saved) {
+      const icon = saveSpotBtn.querySelector("i");
+      const label = saveSpotBtn.querySelector("span");
+
+      icon.className = saved ? "ti ti-heart-filled" : "ti ti-heart";
+      label.textContent = saved ? "saved" : "save this spot";
+      saveSpotBtn.classList.toggle("is-saved", saved);
+    }
+
+    async function syncSaveButton(user) {
+      if (!user || !currentListing) {
+        updateSaveButton(false);
+        return;
+      }
+
+      const saved = await isSpotSaved(user.uid, currentListing.slug);
+      updateSaveButton(saved);
+    }
+
+    saveSpotBtn.addEventListener("click", async () => {
+      if (!currentListing) {
+        return;
+      }
+
+      const user = auth.currentUser;
+
+      if (!user) {
+        sessionStorage.setItem("redirectAfterLogin", window.location.href);
+        window.location.href = "/login";
+        return;
+      }
+
+      const saved = saveSpotBtn.classList.contains("is-saved");
+
+      if (saved) {
+        await unsaveSpot(user.uid, currentListing.slug);
+        updateSaveButton(false);
+        return;
+      }
+
+      await saveSpot(user.uid, {
+        slug: currentListing.slug,
+        name: currentListing.name
+      });
+      updateSaveButton(true);
+    });
+
+    function renderWifiPasswordState(user) {
+      if (!user) {
+        wifiPasswordContent.className = "wifi-pw-locked";
+        wifiPasswordContent.innerHTML = '<i class="ti ti-lock"></i><span>sign in to reveal</span>';
+        loginNudge.style.display = "";
+        return;
+      }
+
+      loginNudge.style.display = "none";
+
+      if (!wifiPassword) {
+        wifiPasswordContent.className = "wifi-pw-open";
+        wifiPasswordContent.textContent = "No password required — open network";
+        return;
+      }
+
+      wifiPasswordContent.className = "wifi-password-revealed";
+      wifiPasswordContent.innerHTML = `
+        <div class="wifi-pw-value"></div>
+        <button class="copy-button" id="copyWifiBtn" type="button">copy</button>
+      `;
+
+      wifiPasswordContent.querySelector(".wifi-pw-value").textContent = wifiPassword;
+
+      document.getElementById("copyWifiBtn").addEventListener("click", async () => {
+        const copyWifiBtn = document.getElementById("copyWifiBtn");
+
+        try {
+          await navigator.clipboard.writeText(wifiPassword);
+          const originalText = copyWifiBtn.textContent;
+          copyWifiBtn.textContent = "copied";
+          window.setTimeout(() => {
+            copyWifiBtn.textContent = originalText;
+          }, 1500);
+        } catch (error) {
+          copyWifiBtn.textContent = "copy failed";
+          window.setTimeout(() => {
+            copyWifiBtn.textContent = "copy";
+          }, 1500);
+        }
+      });
+    }
+
+    wifiSignInBtn.addEventListener("click", () => {
+      sessionStorage.setItem("redirectAfterLogin", window.location.href);
+      window.location.href = "/login";
+    });
+
+    function redirectToExplore() {
+      const city = currentListing?.city || "new-york";
+      window.location.href = `/explore/${city}`;
+    }
+
+    function capitalizeWords(value = "") {
+      return value
+        .split(" ")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+
+    function formatType(type = "") {
+      return capitalizeWords(type.replace(/-/g, " "));
+    }
+
+    function formatCity(city = "") {
+      return cityNames[city] || capitalizeWords(city.replace(/-/g, " "));
+    }
+
+    function formatLabel(value = "") {
+      return capitalizeWords(value.replace(/-/g, " "));
+    }
+
+    function formatFood(value = "") {
+      if (value === "none") {
+        return "None";
+      }
+
+      return capitalizeWords(value.replace(/-/g, " ").replace("and", "+"));
+    }
+
+    function formatCost(value = "") {
+      if (value === "free") {
+        return "Free";
+      }
+
+      if (value === "buy-something") {
+        return "Buy something";
+      }
+
+      return formatLabel(value);
+    }
+
+    function formatSeating(values = []) {
+      return values.map((value) => formatLabel(value)).join(" + ");
+    }
+
+    function getWifiStyle(speed) {
+      return wifiStyles[speed] || wifiStyles.decent;
+    }
+
+    function renderVibeTags(tags = []) {
+      vibeTags.innerHTML = "";
+
+      tags.forEach((tag) => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = tag;
+        vibeTags.appendChild(chip);
+      });
+    }
+
+    function syncBathroomRevealButton(isVisible) {
+      revealBtn.innerHTML = isVisible
+        ? '<i class="ti ti-eye-off"></i><span>hide</span>'
+        : '<i class="ti ti-eye"></i><span>reveal code</span>';
+    }
+
+    revealBtn.addEventListener("click", () => {
+      const isVisible = bathroomRevealed.classList.toggle("is-visible");
+      syncBathroomRevealButton(isVisible);
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      if (!currentBathroomCode) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(currentBathroomCode);
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = "copied";
+        window.setTimeout(() => {
+          copyBtn.textContent = originalText;
+        }, 1500);
+      } catch (error) {
+        copyBtn.textContent = "copy failed";
+        window.setTimeout(() => {
+          copyBtn.textContent = "copy";
+        }, 1500);
+      }
+    });
+
+    async function loadPlace() {
+      if (!slug) {
+        redirectToExplore();
+        return;
+      }
+
+      try {
+        const listing = await getListing(slug);
+
+        if (!listing) {
+          redirectToExplore();
+          return;
+        }
+
+        currentListing = listing;
+        wifiPassword = listing.wifiPassword || "";
+        currentBathroomCode = listing.bathroomCode || "";
+
+        const wifiStyle = getWifiStyle(listing.wifiSpeed);
+        const cityLabel = formatCity(listing.city);
+        const typeLabel = formatType(listing.type);
+        const noiseLabel = formatLabel(listing.noiseLevel);
+        const outletsLabel = formatLabel(listing.outlets);
+        const foodLabel = formatFood(listing.food);
+        const costLabel = formatCost(listing.costToSit);
+        const seatingLabel = formatSeating(listing.seating || []);
+
+        document.title = `${listing.name} · wf—here`;
+        placeBackLabel.textContent = cityLabel;
+        placeBackLink.href = `/explore/${listing.city || "new-york"}`;
+        placeLocationLine.textContent = `${typeLabel} · ${listing.neighborhood}, ${cityLabel}`;
+        placeTitle.textContent = listing.name;
+        metaWifiDot.style.background = wifiStyle.color;
+        metaWifiLabel.textContent = wifiStyle.label;
+        metaHours.textContent = listing.hours;
+        metaCost.textContent = costLabel;
+
+        detailWifiSpeed.textContent = `${formatLabel(listing.wifiSpeed)} · ${listing.wifiMbps} Mbps`;
+        detailNoiseLevel.textContent = noiseLabel;
+        detailOutlets.textContent = outletsLabel;
+        detailFood.textContent = foodLabel;
+        detailSeating.textContent = seatingLabel;
+        detailCost.textContent = costLabel;
+        detailHours.textContent = listing.hours;
+        detailBathroom.textContent = listing.bathroomNotes || (listing.bathroom ? "Yes" : "No");
+
+        wifiCardDot.style.background = wifiStyle.color;
+        wifiNetwork.textContent = listing.wifiNetwork || "Wifi available";
+        wifiSpeed.textContent = `${listing.wifiMbps} Mbps · ${listing.wifiSpeed}`;
+
+        bathroomCodeValue.textContent = currentBathroomCode || "No code required";
+        bathroomNote.textContent = listing.bathroomNotes || "Ask staff if you need help finding the restroom.";
+        bathroomSubtitle.textContent = currentBathroomCode ? "keypad code required" : "no code required";
+
+        if (!currentBathroomCode) {
+          revealBtn.style.display = "none";
+          bathroomRevealed.classList.add("is-visible");
+          copyBtn.style.display = "none";
+        } else {
+          revealBtn.style.display = "";
+          copyBtn.style.display = "";
+          bathroomRevealed.classList.remove("is-visible");
+          syncBathroomRevealButton(false);
+        }
+
+        renderVibeTags(listing.vibeTags || []);
+
+        sidebarAddress.textContent = listing.address;
+        sidebarNeighborhood.textContent = listing.neighborhood;
+        sidebarType.textContent = typeLabel;
+
+        const user = auth.currentUser;
+        await syncSaveButton(user);
+        renderWifiPasswordState(user);
+      } catch (error) {
+        console.error("Failed to load listing", error);
+        redirectToExplore();
+      }
+    }
+
+    onAuthChange((user) => {
+      syncSaveButton(user);
+      if (currentListing) {
+        renderWifiPasswordState(user);
+      }
+    });
+
+    loadPlace();
+  </script>
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+</body>
+</html>

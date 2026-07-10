@@ -1,0 +1,169 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+SUPPLEMENTAL BRIEF S1 — GOOGLE PLACES INTEGRATION
+
+This brief adds Google Places lookup to two existing pages: the submit form and the explore page search bar. It does not rebuild either page — it layers on top of what is already built. Mapbox remains the map renderer. Google Places is used only as a data source for place search and autocomplete.
+
+BEFORE STARTING — MANUAL SETUP
+
+Step 1 — Get a Google Places API key. Go to console.cloud.google.com. Create a new project called "wf-here" or use an existing one. Go to APIs and Services then Enable APIs. Enable these two APIs: Places API and Maps JavaScript API (needed for the Autocomplete widget even though we are not showing a Google map). Go to APIs and Services then Credentials. Click Create Credentials then API Key. Copy the key.
+
+Step 2 — Restrict the API key. Click the key you just created. Under Application restrictions select HTTP referrers. Add these referrers: https://wf-here.com/*, https://*.vercel.app/*, http://localhost:*. Under API restrictions select Restrict key and select Places API and Maps JavaScript API. Save.
+
+Step 3 — Add the key to Vercel environment variables. In your Vercel project settings add a new environment variable: GOOGLE_PLACES_API_KEY with your key value. Also add it as a local environment variable for development — create a file called .env in your project root (if it does not exist) and add: GOOGLE_PLACES_API_KEY=YOUR_KEY_HERE. Add .env to your .gitignore file so the key is never committed to GitHub.
+
+Step 4 — Create a Vercel serverless function to proxy Google Places calls. This keeps your API key server-side and out of the browser. Create a new file at /api/places.js. This is a Vercel serverless function — Vercel automatically serves any file in the /api folder as an API endpoint.
+
+/api/places.js contents — Cursor writes this:
+
+const fetch = require('node-fetch');
+
+module.exports = async (req, res) => {
+  const { action, input, placeId, sessionToken } = req.query;
+  const API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+
+  if (!API_KEY) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
+  if (action === 'autocomplete') {
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&types=establishment&key=${API_KEY}&sessiontoken=${sessionToken}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return res.status(200).json(data);
+  }
+
+  if (action === 'details') {
+    const fields = 'name,formatted_address,geometry,opening_hours,photos,types,price_level,formatted_phone_number,website';
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}&sessiontoken=${sessionToken}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return res.status(200).json(data);
+  }
+
+  return res.status(400).json({ error: 'Unknown action' });
+};
+
+Also run in terminal from project root: npm install node-fetch@2
+
+This proxy means the Google API key never appears in your browser JavaScript. All Places calls go through /api/places which adds the key server-side.
+
+Create a new file /js/places.js. This is the client-side module that calls the proxy and returns clean data. Cursor writes this file.
+
+----------------------------------------------------------------
+
+PART 1 — SUBMIT FORM UPDATE
+
+The submit form at /submit/index.html currently has a name text input and a separate address text input at the top of Step 1. Replace both of these with a single Google Places search field. Everything below those two fields stays exactly as built.
+
+REMOVE from the submit form Step 1:
+The "Name of the place" text input and its label.
+The "Address" text input and its label.
+
+ADD at the top of Step 1 in their place:
+
+A field group with label "Find the place". Hint text: "Search by name or paste a Google Maps link — we will fill in the details." Font-size var(--text-xs), color var(--color-ink-muted).
+
+A search input row: display flex, gap 8px. A text input with id "placeSearchInput" — full width, standard input styles, placeholder "e.g. Ludlow Coffee Supply, New York". A button with id "placeSearchBtn" — background var(--color-ink), color var(--color-surface), padding 10px 16px, border-radius var(--radius-lg), border none, cursor pointer, font-size var(--text-sm), font-family inherit, white-space nowrap. Text "Look up".
+
+A dropdown with id "placeAutocompleteList" — position absolute, z-index 50, background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-lg), width 100%, max-height 240px, overflow-y auto, display none. Each suggestion item: padding 10px 14px, font-size var(--text-sm), color var(--color-ink), cursor pointer, border-bottom var(--border-hairline). Last item no border. Hover: background var(--color-surface-sunken). Wrap the search input row and dropdown in a div with position relative.
+
+A place preview card with id "placePreview" — hidden by default using display none. When a place is selected show this card: background var(--color-surface-raised), border 1.5px solid var(--color-wifi-great), border-radius var(--radius-xl), padding 1rem, display flex, gap 12px, margin-top 8px. Left: a photo div with id "placePhoto", width 72px, height 72px, border-radius var(--radius-lg), background var(--color-surface-sunken), overflow hidden, flex-shrink 0. If a photo is available set it as a background-image with background-size cover. Right side: display flex, flex-direction column, gap 4px. A span with id "placeName" — font-size var(--text-md), font-weight var(--weight-medium), color var(--color-ink). A span with id "placeAddress" — font-size var(--text-sm), color var(--color-ink-muted). A span with id "placeHours" — font-size var(--text-sm), color var(--color-wifi-great) if open now, color var(--color-ink-muted) if closed. A span with class "auto-badge" — font-size var(--text-xs), padding 2px 8px, background #EAF3DE, color #27500A, border-radius var(--radius-full), align-self flex-start. Text "fetched from Google". A small "Wrong place? Search again" link below the preview card — font-size var(--text-xs), color var(--color-ink-muted), cursor pointer. Clicking it clears the preview and refocuses the search input.
+
+JAVASCRIPT FOR PLACES SEARCH IN SUBMIT FORM
+
+In /js/places.js create and export these functions:
+
+Function generateSessionToken — returns a random UUID string. Call this once per search session and reuse it for both autocomplete and details calls within the same session. Reset it after a details call completes.
+
+Function autocomplete — accepts an input string and sessionToken. Calls /api/places?action=autocomplete&input=INPUT&sessionToken=TOKEN. Returns the predictions array from the response. Each prediction has a description (display text) and a place_id.
+
+Function getPlaceDetails — accepts a placeId and sessionToken. Calls /api/places?action=details&placeId=PLACEID&sessionToken=TOKEN. Returns a clean object with these fields extracted from the Google response:
+
+name — result.name
+address — result.formatted_address
+lat — result.geometry.location.lat
+lng — result.geometry.location.lng
+hours — result.opening_hours?.weekday_text joined with line breaks, or null
+isOpenNow — result.opening_hours?.open_now boolean, or null
+photoReference — first photo reference from result.photos array, or null
+placeType — first item from result.types array that is not "point_of_interest" or "establishment", or "other"
+phone — result.formatted_phone_number or null
+website — result.website or null
+
+Function getPhotoUrl — accepts a photoReference string. Returns the URL: /api/places?action=photo&photoReference=REFERENCE. Add a photo action to /api/places.js that proxies the Google photo URL.
+
+Add to /api/places.js a photo action:
+
+if (action === 'photo') {
+  const { photoReference } = req.query;
+  const maxWidth = 400;
+  const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${API_KEY}`;
+  const response = await fetch(photoUrl);
+  const buffer = await response.buffer();
+  res.setHeader('Content-Type', response.headers.get('content-type'));
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  return res.send(buffer);
+}
+
+AUTOCOMPLETE BEHAVIOR
+
+In the submit form script import autocomplete, getPlaceDetails, getPhotoUrl, generateSessionToken from places.js.
+
+Generate a session token on page load: let sessionToken = generateSessionToken().
+
+As the user types in placeSearchInput (with a 300ms debounce) call autocomplete with the input value and sessionToken. Show results in placeAutocompleteList. Hide the list if input is empty or fewer than 3 characters.
+
+When a suggestion is clicked: hide the dropdown, call getPlaceDetails with the place_id and sessionToken, then reset sessionToken to generateSessionToken(). Populate the preview card with the returned data. Store the full place details in a variable called selectedPlace. Show the preview card.
+
+When the Look up button is clicked and the input contains "maps.app.goo.gl" or "maps.google.com": extract the place ID from the URL if possible, or use the full URL as a search query to autocomplete. This handles users who paste a Google Maps share link instead of typing a name.
+
+STORE GOOGLE DATA IN SUBMISSION
+
+When the form is submitted add the Google-sourced fields to the spotData object in addition to all existing fields:
+
+name — selectedPlace.name
+address — selectedPlace.address
+lat — selectedPlace.lat
+lng — selectedPlace.lng
+googlePlaceId — the Google place_id string
+googlePhotoRef — selectedPlace.photoReference
+hours — selectedPlace.hours
+phone — selectedPlace.phone
+website — selectedPlace.website
+
+If no place was selected via Google search (user skipped it) these fields remain empty strings or zero. The form still submits — you can fill in the address manually in Firestore after approving.
+
+ADMIN QUEUE UPDATE
+
+In /admin/queue/index.html update the review card to show the Google-sourced data when present. If googlePhotoRef is not empty show the photo using getPhotoUrl in the card. Display the lat and lng values so you can verify them before approving. If lat and lng are both non-zero the listing is map-ready immediately on approval — no manual coordinate entry needed.
+
+----------------------------------------------------------------
+
+PART 2 — EXPLORE PAGE SEARCH BAR UPDATE
+
+The explore page nav already has a search input with placeholder "Search spots, neighborhoods…". Currently it does nothing. Wire it up to Google Places Autocomplete so users can search for a place or neighborhood and the Mapbox map flies to that location.
+
+In /explore/index.html import autocomplete, getPlaceDetails, generateSessionToken from places.js.
+
+Generate a session token on load.
+
+As the user types in the nav search input (300ms debounce, minimum 3 characters) call autocomplete and show a dropdown below the search input. Style the dropdown the same as the submit form dropdown.
+
+When a suggestion is clicked: call getPlaceDetails, get the lat and lng, call the Mapbox map's flyTo method with those coordinates at zoom level 15, hide the dropdown, clear the input. If the selected place matches an existing listing in the sidebar (compare by googlePlaceId or by name) highlight that card and show its popup.
+
+If the selected place is not an existing WF-Here listing show a subtle prompt below the map popup area: "This spot is not on wf—here yet." with a link "Add it →" linking to /submit with the place name pre-filled as a URL parameter: /submit?placeName=PLACE NAME. In the submit form read this URL parameter on load and pre-fill the search input with it, then auto-trigger the autocomplete search.
+
+----------------------------------------------------------------
+
+WHAT TO DELIVER
+
+/api/places.js serverless proxy with autocomplete, details, and photo actions. /js/places.js client module with all four functions. Submit form updated with Google Places search field, autocomplete dropdown, and place preview card. Submit form spotData including all Google-sourced fields. Admin queue showing Google photo and coordinates when present. Explore page search bar wired to Google Places Autocomplete with Mapbox flyTo on selection. "Not on wf—here yet" prompt with link to submit. No API key exposed in any client-side JavaScript. No console errors.
+
+----------------------------------------------------------------
+
+QA — open /submit. Type "Ludlow Coffee" in the search field. After 300ms confirm a dropdown appears with suggestions. Click a suggestion and confirm the preview card appears with the place name, address, and photo. Check that the lat and lng are stored by submitting the form and checking the Firestore submission document — it should have non-zero lat and lng values. Open /explore/new-york. Type "McNally Jackson" in the nav search bar. Confirm a dropdown appears. Click the result and confirm the Mapbox map flies to that location. Check the browser console and confirm no requests contain your Google API key directly — all calls should go through /api/places.

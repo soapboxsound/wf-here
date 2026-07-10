@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>listings · wf—here admin</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/new-york">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+
+  <main class="admin-queue-page">
+    <nav class="admin-subnav" aria-label="Admin navigation">
+      <a href="/admin/queue">Review queue</a>
+      <a class="is-active" href="/admin/listings">Listings</a>
+    </nav>
+
+    <h1 class="admin-queue-title">Listings manager</h1>
+    <p class="admin-queue-count" id="listingsCount">0 listings</p>
+
+    <div class="admin-filters" id="cityFilters">
+      <button class="admin-filter-btn is-active" type="button" data-city="all">All cities</button>
+      <button class="admin-filter-btn" type="button" data-city="new-york">New York</button>
+      <button class="admin-filter-btn" type="button" data-city="los-angeles">Los Angeles</button>
+    </div>
+
+    <div class="admin-filters" id="statusFilters">
+      <button class="admin-filter-btn is-active" type="button" data-status="all">All statuses</button>
+      <button class="admin-filter-btn" type="button" data-status="approved">Published</button>
+      <button class="admin-filter-btn" type="button" data-status="unpublished">Unpublished</button>
+    </div>
+
+    <div id="listingsList"></div>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module">
+    import { getAdminListings, updateListing } from "/js/db.js";
+
+    const listingsCount = document.getElementById("listingsCount");
+    const listingsList = document.getElementById("listingsList");
+    const cityFilters = document.getElementById("cityFilters");
+    const statusFilters = document.getElementById("statusFilters");
+
+    const cityLabels = {
+      "new-york": "New York",
+      "los-angeles": "Los Angeles"
+    };
+
+    let listings = [];
+    let activeCity = "all";
+    let activeStatus = "all";
+
+    function formatType(type = "") {
+      return type
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `admin-toast ${type === "success" ? "is-success" : "is-muted"}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      window.setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    function getFilteredListings() {
+      return listings.filter((listing) => {
+        const cityMatch = activeCity === "all" || listing.city === activeCity;
+        const statusMatch = activeStatus === "all" || listing.status === activeStatus;
+        return cityMatch && statusMatch;
+      });
+    }
+
+    function updateCount() {
+      const count = getFilteredListings().length;
+      listingsCount.textContent = `${count} listing${count === 1 ? "" : "s"}`;
+    }
+
+    function renderEmptyState() {
+      listingsList.innerHTML = `
+        <div class="admin-queue-empty">
+          <svg width="32" height="32" viewBox="0 0 14 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.134 3.134 0 7 0C10.866 0 14 3.134 14 7C14 8.486 13.519 9.859 12.702 10.976L7 22L1.298 10.976C0.481 9.859 0 8.486 0 7ZM7 10C8.657 10 10 8.657 10 7C10 5.343 8.657 4 7 4C5.343 4 4 5.343 4 7C4 8.657 5.343 10 7 10Z" fill="currentColor"/></svg>
+          <p>No listings match these filters.</p>
+        </div>
+      `;
+    }
+
+    function renderListings() {
+      const filtered = getFilteredListings();
+      updateCount();
+
+      if (!filtered.length) {
+        renderEmptyState();
+        return;
+      }
+
+      listingsList.innerHTML = "";
+      filtered.forEach((listing) => {
+        listingsList.appendChild(renderListingCard(listing));
+      });
+    }
+
+    function renderListingCard(listing) {
+      const card = document.createElement("article");
+      card.className = "listing-card";
+      card.dataset.id = listing.id;
+
+      if (listing.featured) {
+        card.classList.add("is-featured");
+      }
+
+      if (listing.status === "unpublished") {
+        card.classList.add("is-unpublished");
+      }
+
+      const isPublished = listing.status === "approved";
+      const statusClass = isPublished ? "is-approved" : "is-unpublished";
+      const statusLabel = isPublished ? "published" : "unpublished";
+      const featuredBadge = listing.featured ? '<span class="listing-featured-badge">featured</span>' : "";
+      const coordsLabel = listing.lat && listing.lng ? `${listing.lat}, ${listing.lng}` : "No coordinates";
+
+      card.innerHTML = `
+        <div class="listing-card-header">
+          <div>
+            <div class="listing-card-title-row">
+              <h2 class="listing-card-name">${listing.name || "Untitled listing"}</h2>
+              <span class="listing-status-badge ${statusClass}">${statusLabel}</span>
+              ${featuredBadge}
+            </div>
+            <p class="listing-card-meta">${formatType(listing.type)} · ${listing.neighborhood || "—"} · ${cityLabels[listing.city] || listing.city}</p>
+            <p class="listing-card-meta">${listing.address || "—"} · ${coordsLabel}</p>
+          </div>
+        </div>
+        <div class="listing-card-actions">
+          <a class="listing-btn listing-btn-view" href="/place?slug=${encodeURIComponent(listing.slug)}" target="_blank" rel="noopener noreferrer">View</a>
+          <button class="listing-btn listing-btn-feature ${listing.featured ? "is-active" : ""}" type="button" data-action="feature">
+            ${listing.featured ? "Unfeature" : "Feature"}
+          </button>
+          <button class="listing-btn ${isPublished ? "listing-btn-unpublish" : "listing-btn-publish"}" type="button" data-action="toggle-status">
+            ${isPublished ? "Unpublish" : "Publish"}
+          </button>
+          <button class="listing-btn listing-btn-edit" type="button" data-action="edit">Edit</button>
+        </div>
+        <div class="listing-edit-panel" data-edit-panel>
+          <div class="listing-edit-grid">
+            <div class="form-field">
+              <label class="form-label">Name</label>
+              <input class="form-input" data-field="name" type="text" value="${listing.name || ""}">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Slug</label>
+              <input class="form-input" data-field="slug" type="text" value="${listing.slug || ""}" readonly>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Neighborhood</label>
+              <input class="form-input" data-field="neighborhood" type="text" value="${listing.neighborhood || ""}">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Hours</label>
+              <input class="form-input" data-field="hours" type="text" value="${listing.hours || ""}">
+            </div>
+            <div class="form-field" style="grid-column: 1 / -1;">
+              <label class="form-label">Address</label>
+              <input class="form-input" data-field="address" type="text" value="${listing.address || ""}">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Latitude</label>
+              <input class="form-input" data-field="lat" type="number" step="any" value="${listing.lat || 0}">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Longitude</label>
+              <input class="form-input" data-field="lng" type="number" step="any" value="${listing.lng || 0}">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Wifi network</label>
+              <input class="form-input" data-field="wifiNetwork" type="text" value="${listing.wifiNetwork || ""}">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Wifi password</label>
+              <input class="form-input" data-field="wifiPassword" type="text" value="${listing.wifiPassword || ""}">
+            </div>
+          </div>
+          <div class="listing-edit-actions">
+            <button class="listing-btn listing-btn-cancel" type="button" data-action="cancel-edit">Cancel</button>
+            <button class="listing-btn listing-btn-save" type="button" data-action="save-edit">Save changes</button>
+          </div>
+        </div>
+      `;
+
+      const editPanel = card.querySelector("[data-edit-panel]");
+
+      card.querySelector('[data-action="feature"]').addEventListener("click", async () => {
+        try {
+          const featured = !listing.featured;
+          await updateListing(listing.id, { featured });
+          listing.featured = featured;
+          renderListings();
+          showToast(featured ? "Listing featured." : "Listing unfeatured.");
+        } catch (error) {
+          console.error("Failed to toggle featured", error);
+          showToast("Could not update listing.", "muted");
+        }
+      });
+
+      card.querySelector('[data-action="toggle-status"]').addEventListener("click", async () => {
+        try {
+          const status = listing.status === "approved" ? "unpublished" : "approved";
+          await updateListing(listing.id, { status });
+          listing.status = status;
+          renderListings();
+          showToast(status === "approved" ? "Listing published." : "Listing unpublished.");
+        } catch (error) {
+          console.error("Failed to toggle status", error);
+          showToast("Could not update listing.", "muted");
+        }
+      });
+
+      card.querySelector('[data-action="edit"]').addEventListener("click", () => {
+        editPanel.classList.toggle("is-open");
+      });
+
+      card.querySelector('[data-action="cancel-edit"]').addEventListener("click", () => {
+        editPanel.classList.remove("is-open");
+      });
+
+      card.querySelector('[data-action="save-edit"]').addEventListener("click", async () => {
+        const saveButton = card.querySelector('[data-action="save-edit"]');
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+
+        const updates = {
+          name: card.querySelector('[data-field="name"]').value.trim(),
+          neighborhood: card.querySelector('[data-field="neighborhood"]').value.trim(),
+          hours: card.querySelector('[data-field="hours"]').value.trim(),
+          address: card.querySelector('[data-field="address"]').value.trim(),
+          lat: Number(card.querySelector('[data-field="lat"]').value) || 0,
+          lng: Number(card.querySelector('[data-field="lng"]').value) || 0,
+          wifiNetwork: card.querySelector('[data-field="wifiNetwork"]').value.trim(),
+          wifiPassword: card.querySelector('[data-field="wifiPassword"]').value.trim()
+        };
+
+        try {
+          await updateListing(listing.id, updates);
+          Object.assign(listing, updates);
+          editPanel.classList.remove("is-open");
+          renderListings();
+          showToast("Listing updated.");
+        } catch (error) {
+          console.error("Failed to save listing", error);
+          showToast("Could not save listing.", "muted");
+        } finally {
+          saveButton.disabled = false;
+          saveButton.textContent = "Save changes";
+        }
+      });
+
+      return card;
+    }
+
+    function setActiveFilter(container, button) {
+      container.querySelectorAll(".admin-filter-btn").forEach((item) => {
+        item.classList.toggle("is-active", item === button);
+      });
+    }
+
+    cityFilters.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-city]");
+      if (!button) {
+        return;
+      }
+
+      activeCity = button.dataset.city;
+      setActiveFilter(cityFilters, button);
+      renderListings();
+    });
+
+    statusFilters.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-status]");
+      if (!button) {
+        return;
+      }
+
+      activeStatus = button.dataset.status;
+      setActiveFilter(statusFilters, button);
+      renderListings();
+    });
+
+    async function loadListings() {
+      listingsList.innerHTML = `<p class="admin-queue-count">Loading listings...</p>`;
+
+      try {
+        listings = await getAdminListings();
+        renderListings();
+      } catch (error) {
+        console.error("Failed to load listings", error);
+        listingsList.innerHTML = `<p class="profile-empty">Unable to load listings.</p>`;
+      }
+    }
+
+    loadListings();
+  </script>
+</body>
+</html>

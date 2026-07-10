@@ -1,0 +1,128 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 14 — FOR BUSINESSES PAGE
+
+Build the for businesses page at /for-businesses/index.html. This is the revenue pitch page for venues that want featured placement. It also handles listing removal requests.
+
+PAGE LAYOUT
+
+Standard page with nav. Max-width 860px, margin 0 auto, padding 3rem 2rem 5rem. No sidebar.
+
+SECTION 1 — HERO
+
+Eyebrow: "for businesses" — standard eyebrow styles.
+
+H1: "Put your spot in front of the people who are looking." — font-size var(--text-3xl), font-weight var(--weight-light), letter-spacing -2px, line-height 1.05, max-width 680px.
+
+Sub: "wf—here is where remote workers, freelancers, and laptop-first people find their next workspace. Featured listings get priority placement, a verified badge, and the black pin." — font-size var(--text-md), color var(--color-ink-tertiary), line-height 1.65, max-width 560px, margin-top 1rem.
+
+Two CTA buttons side by side with gap 12px, margin-top 2rem:
+
+Primary button: "Get featured" — background var(--color-pin), color white, padding 12px 24px, border-radius var(--radius-md), border none, cursor pointer, font-size var(--text-md), font-weight var(--weight-medium), font-family inherit. Clicking scrolls smoothly to the lead form section.
+
+Secondary button: "Request removal" — background transparent, color var(--color-ink), border var(--border-hairline), padding 12px 24px, border-radius var(--radius-md), cursor pointer, font-size var(--text-md), font-family inherit. Clicking scrolls to the removal form section.
+
+SECTION 2 — WHAT FEATURED MEANS
+
+A section with class "featured-explainer". Margin-top 4rem.
+
+Section title: "What you get" — font-size var(--text-xl), font-weight var(--weight-light), letter-spacing -0.5px, margin-bottom 2rem.
+
+Three benefit cards in a grid — display grid, grid-template-columns repeat 3 1fr, gap 16px. On mobile single column.
+
+Each benefit card: background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-xl), padding 1.25rem.
+
+Card 1 — icon "ti ti-map-pin" in color var(--color-pin) at font-size 24px. Title "Black pin on the map". Description "Featured spots use a distinct black pin that stands out immediately. You are the first thing people notice when they open the map."
+
+Card 2 — icon "ti ti-rosette" in color var(--color-pin) at font-size 24px. Title "Verified badge". Description "A verified badge on your listing signals quality and curation. Users know you have been reviewed and approved by wf—here."
+
+Card 3 — icon "ti ti-chart-bar" in color var(--color-pin) at font-size 24px. Title "Priority placement". Description "Featured listings appear at the top of search results and list views. More visibility means more people choosing your space."
+
+Icon styles: margin-bottom 12px, display block.
+Title styles: font-size var(--text-md), font-weight var(--weight-medium), color var(--color-ink), letter-spacing -0.2px, margin-bottom 6px.
+Description styles: font-size var(--text-sm), color var(--color-ink-tertiary), line-height 1.6.
+
+SECTION 3 — WHAT IT LOOKS LIKE
+
+A visual comparison showing standard pin versus featured pin side by side. Margin-top 3rem.
+
+Section title: "Standard vs featured" — same section title styles.
+
+Two-column comparison, max-width 600px:
+
+Left column — Standard listing: a simplified spot card mock showing a red pin, "Ludlow Coffee Supply", café, standard chip badges. Label below: "Standard listing — free".
+
+Right column — Featured listing: same card but with a black pin, "featured" badge, slightly more prominent border. Label below: "Featured listing — contact for pricing".
+
+Card mock styles: background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-xl), padding 1rem, display flex, flex-direction column, gap 8px.
+
+Featured card mock: border-color var(--color-ink), border-width 1.5px.
+
+Label below each mock: font-size var(--text-sm), color var(--color-ink-muted), text-align center, margin-top 8px.
+
+SECTION 4 — LEAD FORM
+
+An anchor with id "get-featured" placed above this section for smooth scroll target.
+
+A div with class "lead-form-section". Margin-top 4rem, padding-top 2rem, border-top var(--border-hairline).
+
+Section title: "Get in touch" — same title styles.
+Sub: "Tell us about your business and we will be in touch within 48 hours." — font-size var(--text-sm), color var(--color-ink-muted), margin-bottom 2rem.
+
+A form with id "featuredLeadForm". Max-width 520px. Display flex, flex-direction column, gap 1rem.
+
+Fields using standard input styles:
+
+Business name — text input, placeholder "e.g. Ludlow Coffee Supply", required.
+Your name — text input, placeholder "First and last name", required.
+Email — email input, placeholder "you@yourbusiness.com", required.
+Phone — tel input, placeholder "Optional".
+Location — text input, placeholder "Address or neighborhood", required.
+Message — textarea, placeholder "Tell us about your space and why it would be a great fit for wf—here.", min-height 100px.
+
+Submit button: full width, background var(--color-ink), color var(--color-surface), padding 12px, border-radius var(--radius-lg), font-size var(--text-md), border none, cursor pointer, font-family inherit. Text: "Send enquiry".
+
+On submit prevent default. Write the form data to a Firestore collection called "featuredLeads" with all field values plus a status field set to "new" and a createdAt timestamp. Show a success message replacing the form: "Thanks — we will be in touch within 48 hours." in the same style as the submit spot confirmation. On error show an error message below the button.
+
+SECTION 5 — REMOVAL REQUEST
+
+An anchor with id "removal-request" placed above this section.
+
+A div with class "removal-section". Margin-top 4rem, padding-top 2rem, border-top var(--border-hairline).
+
+Section title: "Remove your listing" — same title styles.
+Sub: "If your business is listed on wf—here and you would like it removed, fill out this form. We will process your request within 5 business days." — font-size var(--text-sm), color var(--color-ink-muted), margin-bottom 2rem.
+
+A form with id "removalForm". Max-width 520px. Display flex, flex-direction column, gap 1rem.
+
+Fields:
+
+Business name — text input, placeholder "Name of your business as it appears on wf—here", required.
+Your name — text input, required.
+Email — email input, placeholder "Contact email", required.
+Reason — select with options: "Incorrect information", "Business is closed", "Privacy concerns", "Other".
+Additional notes — textarea optional, placeholder "Anything else we should know?".
+
+Submit button: same width and padding as lead form button but background var(--color-surface-raised), color var(--color-ink), border var(--border-hairline). Text: "Submit removal request".
+
+On submit write to a Firestore collection called "removalRequests" with all field values plus status "new" and createdAt. Show success message: "Request received. We will process this within 5 business days."
+
+FOOTER
+
+Standard footer as built on homepage.
+
+RESPONSIVE — below 768px
+
+Benefit cards: single column. Comparison: single column, featured card first. Forms: full width.
+
+WHAT TO DELIVER
+
+Complete for businesses page with all five sections. Lead form writing to Firestore. Removal form writing to Firestore. Smooth scroll to anchors working. No console errors.
+
+----------------------------------------------------------------
+
+QA — open /for-businesses/index.html. Scroll through all five sections. Click "Get featured" and confirm it scrolls to the lead form. Fill in the lead form and submit. Check Firestore and confirm a document appeared in the featuredLeads collection. Click "Request removal" and confirm it scrolls to the removal form. Fill it in and submit. Check Firestore and confirm a document appeared in removalRequests. On mobile confirm the three benefit cards stack to single column.

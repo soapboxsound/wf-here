@@ -1,0 +1,13 @@
+node_modules/
+functions/node_modules/
+.env
+.env.local
+functions/.env
+functions/.env.*
+!functions/.env.example
+js/config.js
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+.vercel
+.DS_Store

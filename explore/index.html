@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>explore · wf—here</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <style>
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .explore-nav {
+      display: grid;
+      grid-template-columns: auto auto 1fr auto;
+      gap: 16px;
+    }
+
+    .explore-nav .nav-links {
+      justify-self: end;
+    }
+
+    .mapboxgl-ctrl-top-right {
+      top: 14px;
+      right: 14px;
+    }
+
+    .mapboxgl-ctrl-group {
+      border-radius: var(--radius-md);
+      box-shadow: none;
+      border: var(--border-hairline);
+    }
+
+    .mapboxgl-ctrl button {
+      width: 32px;
+      height: 32px;
+    }
+
+    @media (max-width: 768px) {
+      .explore-nav {
+        display: flex;
+        justify-content: space-between;
+      }
+    }
+  </style>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+</head>
+<body>
+  <nav class="nav explore-nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="32"></a>
+    <div class="city-toggle" aria-label="City toggle">
+      <button class="is-active" type="button">New York</button>
+      <button type="button">Los Angeles</button>
+    </div>
+    <div class="nav-search nav-search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" id="exploreSearchInput" placeholder="Search spots, neighborhoods…">
+      <div class="place-autocomplete-list" id="exploreAutocompleteList"></div>
+    </div>
+    <div class="nav-links">
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item active" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+  <div class="explore-body">
+    <aside class="sidebar">
+      <div class="sidebar-filters" id="sidebar-filters"></div>
+      <div class="results-header">
+        <div class="results-count">42 spots in New York</div>
+        <div class="results-sort">best match <i class="ti ti-chevron-down"></i></div>
+      </div>
+      <div class="spot-list" id="spot-list"></div>
+    </aside>
+    <section class="map-area">
+      <div class="mobile-filters" id="mobile-filters"></div>
+      <div class="view-toggle">
+        <button class="is-active" data-view="map" type="button"><i class="ti ti-map-2"></i><span>map</span></button>
+        <button data-view="list" type="button"><i class="ti ti-list"></i><span>list</span></button>
+      </div>
+      <div class="explore-spot-count">42 spots</div>
+      <button class="location-button" id="location-button" type="button" aria-label="Current location">
+        <i class="ti ti-current-location"></i>
+      </button>
+      <div class="map-canvas" id="map"></div>
+      <div class="map-list-view" id="map-list-view"></div>
+      <div class="map-popup" id="map-popup"></div>
+      <div class="explore-not-listed" id="exploreNotListed">
+        This spot is not on wf—here yet. <a id="exploreAddLink" href="/submit">Add it →</a>
+      </div>
+    </section>
+  </div>
+  <script type="module">
+    import { getListings, getSavedSpots } from "/js/db.js";
+    import { onAuthChange } from "/js/auth.js";
+    import { auth } from "/js/firebase.js";
+    import { EXPLORE_FILTER_OPTIONS, createChipGroup, createSpotCard } from "/js/components.js";
+    import { createPin } from "/js/pins.js";
+    import {
+      autocomplete,
+      debounce,
+      generateSessionToken,
+      getPlaceDetails
+    } from "/js/places.js";
+    import { mapboxToken } from "/js/config.js";
+
+    const wifiLabels = {
+      great: "great wifi",
+      decent: "decent wifi",
+      poor: "poor wifi"
+    };
+
+    const wifiColors = {
+      great: "var(--color-wifi-great)",
+      decent: "var(--color-wifi-decent)",
+      poor: "var(--color-wifi-poor)"
+    };
+
+    const spotList = document.getElementById("spot-list");
+    const mapListView = document.getElementById("map-list-view");
+    const popup = document.getElementById("map-popup");
+    const mapElement = document.getElementById("map");
+    const locationButton = document.getElementById("location-button");
+    const sidebarFilters = document.getElementById("sidebar-filters");
+    const mobileFilters = document.getElementById("mobile-filters");
+    const viewButtons = document.querySelectorAll(".view-toggle button");
+    const resultsCount = document.querySelector(".results-count");
+    const mobileSpotCount = document.querySelector(".explore-spot-count");
+    const exploreSearchInput = document.getElementById("exploreSearchInput");
+    const exploreAutocompleteList = document.getElementById("exploreAutocompleteList");
+    const exploreNotListed = document.getElementById("exploreNotListed");
+    const exploreAddLink = document.getElementById("exploreAddLink");
+    const cardsById = new Map();
+
+    const LOADING_MESSAGE = "Loading spots...";
+    const EMPTY_MESSAGE = "No spots found. Try adjusting your filters.";
+    const DEFAULT_CITY = "new-york";
+
+    function getCityFromPath() {
+      const match = window.location.pathname.match(/\/explore\/([^/]+)/);
+      return match?.[1] || DEFAULT_CITY;
+    }
+
+    const activeCity = getCityFromPath();
+    let sessionToken = generateSessionToken();
+
+    let listings = [];
+    let savedSlugs = new Set();
+    let mapInstance = null;
+    let mapReadyResolve;
+
+    const mapReady = new Promise((resolve) => {
+      mapReadyResolve = resolve;
+    });
+
+    const filterOptions = EXPLORE_FILTER_OPTIONS.filter((option) => option.value !== "open now");
+    sidebarFilters.appendChild(createChipGroup("explore sidebar filters", filterOptions, true));
+    mobileFilters.appendChild(createChipGroup("explore mobile filters", filterOptions, true));
+
+    function formatType(type = "") {
+      return type.replace(/-/g, " ");
+    }
+
+    function formatLocationType(listing) {
+      return `${formatType(listing.type)} · ${listing.neighborhood}`;
+    }
+
+    function formatWifiQuality(listing) {
+      if (listing.wifiSpeed === "fast" || listing.wifiSpeed === "blazing") {
+        return "great";
+      }
+
+      if (listing.wifiSpeed === "poor" || listing.wifiSpeed === "slow") {
+        return "poor";
+      }
+
+      return "decent";
+    }
+
+    function deriveAttributes(listing) {
+      const attributes = [];
+
+      if (listing.wifiSpeed === "fast" || listing.wifiSpeed === "blazing") {
+        attributes.push("fast wifi");
+      } else {
+        attributes.push("wifi");
+      }
+
+      if (listing.outlets === "plenty") {
+        attributes.push("outlets");
+      } else if (listing.outlets === "some") {
+        attributes.push("some outlets");
+      }
+
+      if (listing.noiseLevel) {
+        attributes.push(listing.noiseLevel.replace(/-/g, " "));
+      }
+
+      if (listing.food && listing.food !== "none") {
+        attributes.push(listing.food.replace(/-/g, " "));
+      }
+
+      if (listing.costToSit === "free") {
+        attributes.push("free");
+      }
+
+      return attributes.slice(0, 4);
+    }
+
+    function toSpotCardData(listing) {
+      return {
+        ...listing,
+        type: formatType(listing.type),
+        attributes: deriveAttributes(listing),
+        wifiQuality: formatWifiQuality(listing),
+        saved: savedSlugs.has(listing.slug)
+      };
+    }
+
+    async function refreshSavedSlugs() {
+      const user = auth.currentUser;
+
+      if (!user) {
+        savedSlugs = new Set();
+        return;
+      }
+
+      const savedSpots = await getSavedSpots(user.uid);
+      savedSlugs = new Set(savedSpots.map((spot) => spot.spotSlug));
+    }
+
+    function setStateMessage(target, message) {
+      target.innerHTML = `<div style="font-size: var(--text-sm); color: var(--color-ink-muted);">${message}</div>`;
+    }
+
+    function updateSpotCounts(count) {
+      const cityLabel = activeCity === "los-angeles" ? "Los Angeles" : "New York";
+      const label = `${count} spot${count === 1 ? "" : "s"} in ${cityLabel}`;
+      resultsCount.textContent = label;
+      mobileSpotCount.textContent = `${count} spot${count === 1 ? "" : "s"}`;
+    }
+
+    function hideExploreAutocomplete() {
+      exploreAutocompleteList.classList.remove("is-visible");
+      exploreAutocompleteList.innerHTML = "";
+    }
+
+    function findMatchingListing(details) {
+      return listings.find(
+        (listing) =>
+          (details.placeId && listing.googlePlaceId === details.placeId) ||
+          listing.name.toLowerCase() === details.name.toLowerCase()
+      );
+    }
+
+    async function selectExplorePlace(placeId) {
+      hideExploreAutocomplete();
+
+      try {
+        const details = await getPlaceDetails(placeId, sessionToken);
+        sessionToken = generateSessionToken();
+        exploreSearchInput.value = "";
+        exploreNotListed.classList.remove("is-visible");
+
+        if (mapInstance && details.lat && details.lng) {
+          mapInstance.flyTo({
+            center: [details.lng, details.lat],
+            zoom: 15
+          });
+        }
+
+        const matchingListing = findMatchingListing(details);
+
+        if (matchingListing) {
+          showPopup(matchingListing);
+          return;
+        }
+
+        popup.classList.remove("is-visible");
+        exploreAddLink.href = `/submit?placeName=${encodeURIComponent(details.name)}`;
+        exploreNotListed.classList.add("is-visible");
+      } catch (error) {
+        console.error("Failed to load place search result", error);
+      }
+    }
+
+    function renderExploreAutocomplete(predictions = []) {
+      exploreAutocompleteList.innerHTML = "";
+
+      if (!predictions.length) {
+        hideExploreAutocomplete();
+        return;
+      }
+
+      predictions.forEach((prediction) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "place-autocomplete-item";
+        item.textContent = prediction.description;
+        item.addEventListener("click", () => {
+          selectExplorePlace(prediction.place_id);
+        });
+        exploreAutocompleteList.appendChild(item);
+      });
+
+      exploreAutocompleteList.classList.add("is-visible");
+    }
+
+    async function runExploreAutocompleteSearch(value) {
+      const query = value.trim();
+
+      if (query.length < 3) {
+        hideExploreAutocomplete();
+        return;
+      }
+
+      const predictions = await autocomplete(query, sessionToken);
+      renderExploreAutocomplete(predictions);
+    }
+
+    const debouncedExploreSearch = debounce(() => {
+      runExploreAutocompleteSearch(exploreSearchInput.value);
+    }, 300);
+
+    exploreSearchInput.addEventListener("input", debouncedExploreSearch);
+
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".nav-search-wrap")) {
+        hideExploreAutocomplete();
+      }
+    });
+
+    function createPopupMarkup(listing) {
+      const attrs = deriveAttributes(listing)
+        .map((attribute) => `<span class="spot-attr">${attribute}</span>`)
+        .join("");
+      const wifiKey = formatWifiQuality(listing);
+
+      return `
+        <div class="map-popup-name">${listing.name}</div>
+        <div class="map-popup-type">${formatLocationType(listing)}</div>
+        <div class="map-popup-attrs">${attrs}</div>
+        <div class="map-popup-footer">
+          <div class="spot-wifi" style="color: ${wifiColors[wifiKey]};">
+            <span class="spot-wifi-dot"></span>
+            <span>${wifiLabels[wifiKey]}</span>
+          </div>
+          <button class="popup-view-button" type="button">view spot</button>
+        </div>
+      `;
+    }
+
+    function setActiveCard(spotId) {
+      cardsById.forEach((card, id) => {
+        card.classList.toggle("active", id === spotId);
+      });
+    }
+
+    function showPopup(listing) {
+      popup.innerHTML = createPopupMarkup(listing);
+      popup.classList.add("is-visible");
+      popup.querySelector(".popup-view-button").addEventListener("click", () => {
+        window.location.href = `/place?slug=${encodeURIComponent(listing.slug)}`;
+      });
+      setActiveCard(listing.id);
+      const activeCard = cardsById.get(listing.id);
+      if (activeCard) {
+        activeCard.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }
+
+    function renderCardList(target, items) {
+      target.innerHTML = "";
+
+      items.forEach((listing, index) => {
+        const card = createSpotCard(toSpotCardData(listing));
+        if (index === 0 && target === spotList) {
+          card.classList.add("active");
+        }
+        if (target === spotList) {
+          cardsById.set(listing.id, card);
+        }
+        target.appendChild(card);
+      });
+    }
+
+    if (window.mapboxgl) {
+      mapboxgl.accessToken = mapboxToken;
+
+      mapInstance = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mapbox/light-v11",
+        center: [-73.9857, 40.7484],
+        zoom: 13
+      });
+
+      mapInstance.addControl(new mapboxgl.NavigationControl(), "top-right");
+      mapInstance.on("load", mapReadyResolve);
+    } else {
+      mapElement.innerHTML = '<div class="map-placeholder"><p>Mapbox map loads here after you add a public token.</p></div>';
+      mapReadyResolve();
+    }
+
+    async function renderMarkers(items) {
+      await mapReady;
+
+      if (!mapInstance) {
+        return;
+      }
+
+      items.forEach((listing) => {
+        const markerElement = createPin({
+          type: listing.featured ? "featured" : "standard",
+          size: "lg",
+          name: listing.name,
+          showLabel: listing.featured
+        });
+
+        markerElement.addEventListener("click", () => {
+          showPopup(listing);
+        });
+
+        new mapboxgl.Marker({ element: markerElement })
+          .setLngLat([listing.lng, listing.lat])
+          .addTo(mapInstance);
+      });
+
+      if (items[0]) {
+        showPopup(items[0]);
+      }
+    }
+
+    async function loadListings() {
+      setStateMessage(spotList, LOADING_MESSAGE);
+      setStateMessage(mapListView, LOADING_MESSAGE);
+
+      try {
+        await refreshSavedSlugs();
+        listings = await getListings(activeCity);
+
+        if (!listings.length) {
+          updateSpotCounts(0);
+          popup.classList.remove("is-visible");
+          setStateMessage(spotList, EMPTY_MESSAGE);
+          setStateMessage(mapListView, EMPTY_MESSAGE);
+          return;
+        }
+
+        updateSpotCounts(listings.length);
+        renderCardList(spotList, listings);
+        renderCardList(mapListView, listings);
+        await renderMarkers(listings);
+      } catch (error) {
+        console.error("Failed to load listings", error);
+        updateSpotCounts(0);
+        popup.classList.remove("is-visible");
+        setStateMessage(spotList, EMPTY_MESSAGE);
+        setStateMessage(mapListView, EMPTY_MESSAGE);
+      }
+    }
+
+    locationButton.addEventListener("click", () => {
+      if (mapInstance) {
+        mapInstance.flyTo({ center: [-73.9857, 40.7484], zoom: 13 });
+      }
+    });
+
+    viewButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        viewButtons.forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        const showingList = button.dataset.view === "list";
+        mapElement.style.display = showingList ? "none" : "block";
+        mapListView.classList.toggle("is-visible", showingList);
+        popup.style.display = showingList ? "none" : "";
+      });
+    });
+
+    onAuthChange(async () => {
+      await refreshSavedSlugs();
+
+      if (listings.length) {
+        renderCardList(spotList, listings);
+        renderCardList(mapListView, listings);
+      }
+    });
+
+    loadListings();
+  </script>
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+</body>
+</html>

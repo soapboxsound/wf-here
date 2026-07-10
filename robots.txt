@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin/queue
+Disallow: /admin/listings
+
+Sitemap: https://wf-here.com/sitemap.xml

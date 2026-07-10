@@ -1,0 +1,133 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 15 — CITY SEO PAGES
+
+Build the two city landing pages — New York and Los Angeles. These pages are primarily for organic search traffic. Someone searching "best cafes to work from in NYC" or "remote work spots Los Angeles" should find these pages. They are editorial in tone, not just a list of spots.
+
+BOTH PAGES SHARE THE SAME STRUCTURE
+
+Build /new-york/index.html first, then duplicate the structure for /los-angeles/index.html with city-specific content.
+
+PAGE HEAD — SEO METADATA
+
+For New York add these meta tags to the head:
+
+<meta name="description" content="Find the best cafes, libraries, and public spaces to work from in New York City. Curated workspaces with great wifi, good food, and the right vibe.">
+<meta property="og:title" content="Best places to work remotely in New York City — wf—here">
+<meta property="og:description" content="Curated workspaces across NYC. Great wifi, real reviews, insider info.">
+<meta property="og:image" content="/assets/og-new-york.png">
+<meta property="og:url" content="https://wf-here.com/new-york">
+<meta name="twitter:card" content="summary_large_image">
+
+For Los Angeles replace "New York City" with "Los Angeles" and "NYC" with "LA" throughout. Use /assets/og-los-angeles.png for the og:image. Leave the og:image files as placeholders — they will be created in Brief 17.
+
+PAGE STRUCTURE — NEW YORK
+
+NAV — standard nav as on all pages.
+
+SECTION 1 — HERO
+
+Eyebrow: "New York City" — standard eyebrow styles.
+
+H1: "Find somewhere worth working from in New York." — font-size var(--text-3xl), font-weight var(--weight-light), letter-spacing -2px, line-height 1.05, max-width 700px.
+
+Editorial intro paragraph: "New York is the ultimate laptop city. Every neighbourhood has its version of the perfect spot — a corner café in the LES, a hotel lobby in Midtown, a reading room in a century-old library. The trick is knowing which ones actually have the wifi to back it up." — font-size var(--text-md), color var(--color-ink-tertiary), line-height 1.7, max-width 580px, margin-top 1rem.
+
+A large CTA button below: "Explore the New York map" — links to /explore/index.html with city parameter. Background var(--color-pin), color white, padding 12px 28px, border-radius var(--radius-md), border none, cursor pointer, font-size var(--text-md), font-weight var(--weight-medium), display inline-block, text-decoration none, margin-top 1.5rem.
+
+SECTION 2 — NEIGHBORHOOD GUIDE
+
+A section with class "neighborhood-guide". Margin-top 4rem.
+
+Section title: "By neighborhood" — font-size var(--text-xl), font-weight var(--weight-light), letter-spacing -0.5px, margin-bottom 1.5rem.
+
+Six neighborhood cards in a grid — display grid, grid-template-columns repeat auto-fit minmax 200px 1fr, gap 12px.
+
+Each card: background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-xl), padding 1rem, cursor pointer, text-decoration none, display block. Hover: border-color var(--color-ink-secondary). Clicking filters the explore map to that neighborhood — link to /explore/index.html?neighborhood=NEIGHBORHOOD_SLUG.
+
+Card contents: neighborhood name in font-size var(--text-md), font-weight var(--weight-medium), color var(--color-ink), letter-spacing -0.2px. A descriptor line in font-size var(--text-sm), color var(--color-ink-muted), margin-top 4px. A spot count in font-size var(--text-xs), color var(--color-ink-faint), margin-top 8px.
+
+Six neighborhoods:
+
+Lower East Side — "indie cafes, late nights, good wifi" — slug "lower-east-side"
+Midtown — "hotel lobbies, libraries, power outlets" — slug "midtown"
+Williamsburg — "coffee shops, creative crowd, fast wifi" — slug "williamsburg"
+Nolita — "quiet corners, good coffee, small spaces" — slug "nolita"
+Sunset Park — "industry city, big tables, all day" — slug "sunset-park"
+The Village — "bookshop cafes, NYU energy, character" — slug "the-village"
+
+SECTION 3 — FEATURED SPOTS
+
+A section with class "featured-spots". Margin-top 4rem.
+
+Section title: "Top picks right now" — same title styles.
+Sub: "Curated by the wf—here team. Updated as we find new spots." — font-size var(--text-sm), color var(--color-ink-muted), margin-bottom 1.5rem.
+
+Load the top 3 approved listings from Firestore for city "new-york" ordered by featured descending then by name. Import getListings from db.js. For each listing render a horizontal spot card — wider than the sidebar card, better for a full-width editorial layout.
+
+Horizontal card: background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-xl), padding 1.25rem, display flex, gap 1.25rem, align-items flex-start, margin-bottom 12px. Cursor pointer. Links to /place/index.html?slug= plus the slug.
+
+Left side: a placeholder image div, width 100px, height 80px, border-radius var(--radius-lg), background var(--color-surface-sunken), flex-shrink 0.
+
+Right side: display flex, flex-direction column, gap 6px. Spot name in font-size var(--text-md), font-weight var(--weight-medium), color var(--color-ink). Type dot neighborhood in font-size var(--text-sm), color var(--color-ink-muted). Attribute chips row. Wifi quality indicator. "View spot →" in font-size var(--text-sm), color var(--color-ink-muted), margin-top auto.
+
+A "See all New York spots" link below the cards — links to /explore/index.html. Display block, text-align center, margin-top 1.5rem, font-size var(--text-sm), color var(--color-ink), font-weight var(--weight-medium), text-decoration underline.
+
+SECTION 4 — EDITORIAL — WORKING IN NYC
+
+A section with class "editorial". Margin-top 4rem, padding-top 2rem, border-top var(--border-hairline).
+
+Section title: "Working in New York" — same title styles.
+
+Three editorial paragraphs. These are real content, not placeholder. Style each as font-size var(--text-md), color var(--color-ink-secondary), line-height 1.75, margin-bottom 1.25rem, max-width 640px.
+
+Paragraph 1: "New York has always been a city of people working in public. The café laptop crowd is not a recent phenomenon — it is how this city has always operated. What has changed is what people need: fast enough wifi for video calls, enough outlets to stay all day, and a noise level that does not require noise-cancelling headphones at full blast."
+
+Paragraph 2: "The best spots tend to cluster by type. Hotel lobbies in Midtown give you power, space, and anonymity — nobody asks how long you have been there. Cafés in the LES and Williamsburg have the wifi and the vibe but fill up fast after 10am. Libraries are the underrated choice: free, quiet, and the Rose Reading Room at NYPL is one of the most beautiful rooms in the city to open a laptop in."
+
+Paragraph 3: "wf—here is built to cut through the noise. Every spot is tested, reviewed, and verified. No sponsored content. No fake reviews. Just places that actually work."
+
+SECTION 5 — SUBMIT CTA
+
+Same dark CTA band as the homepage. Margin-top 4rem. Text: "Know a New York spot we missed?" and "Submit it and help the map grow." Button: "Submit a spot" linking to /submit/index.html.
+
+FOOTER — standard footer.
+
+LOS ANGELES PAGE
+
+Build /los-angeles/index.html with the same structure but city-specific content.
+
+H1: "Find somewhere worth working from in Los Angeles."
+
+Editorial intro: "LA is the distributed city — neighbourhoods are their own worlds, commutes are brutal, and the café culture is genuinely world-class. The challenge is not finding a good spot, it is knowing which ones have the wifi that can handle a Zoom call and won't kick you out after an hour."
+
+Neighborhoods: Silver Lake, Venice, Culver City, DTLA, Los Feliz, Santa Monica.
+
+Silver Lake — "creative crowd, great coffee, good wifi" — slug "silver-lake"
+Venice — "beach energy, startup crowd, strong signal" — slug "venice"
+Culver City — "industry adjacent, quiet spots, all day wifi" — slug "culver-city"
+DTLA — "hotel lobbies, co-working spillover, urban energy" — slug "dtla"
+Los Feliz — "neighbourhood cafes, low key, laptop friendly" — slug "los-feliz"
+Santa Monica — "beachside focus, plenty of spots, tourist-proof" — slug "santa-monica"
+
+Editorial paragraphs for LA:
+
+Paragraph 1: "Working in Los Angeles means accepting that your office will change depending on where you are that day. The city rewards flexibility. A meeting in Culver City, a focus block in Silver Lake, a late afternoon in Venice — each neighbourhood has its version of the right spot."
+
+Paragraph 2: "The key variables in LA are parking, wifi reliability, and noise. Hotel lobbies in DTLA and Santa Monica are underused gold mines. The café culture in Silver Lake and Los Feliz is strong but competitive — arrive before 9am or accept that you are getting the table by the bathroom. Venice has the best combination of outdoor seating and fast wifi of any neighbourhood in the city."
+
+Paragraph 3: "wf—here maps the spots that actually work. Every listing is reviewed and verified. The wifi speeds are real. The bathroom codes are current. No guesswork."
+
+Load listings from Firestore for city "los-angeles". If no LA listings exist yet show a placeholder message: "LA listings coming soon. Know a great spot? Submit it." — centered, padded, with submit link.
+
+WHAT TO DELIVER
+
+/new-york/index.html — complete, responsive, loading real Firestore listings. /los-angeles/index.html — complete, responsive, with coming soon state for listings if none exist. All SEO meta tags in both pages. Neighborhood cards linking to explore with filter parameter. No console errors.
+
+----------------------------------------------------------------
+
+QA — open /new-york/index.html. Confirm the editorial intro, neighborhood grid, top picks from Firestore, editorial paragraphs, and CTA band all appear correctly. Click a neighborhood card and confirm it links to the explore page with the neighborhood parameter in the URL. On mobile confirm the neighborhood grid stacks to two or one column. Open /los-angeles/index.html and confirm it loads with LA-specific content. View page source and confirm the meta description and og:title tags are present.

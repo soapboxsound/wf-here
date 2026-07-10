@@ -1,0 +1,129 @@
+/*
+  WF-Here Design Tokens
+  /css/tokens.css
+  Load this file first on every page.
+  Never edit these values directly — all design decisions flow from here.
+*/
+
+:root {
+
+  /* ─── Colors ─── */
+
+  /* Text */
+  --color-ink:           #111111;  /* Primary text, headings */
+  --color-ink-secondary: #444444;  /* Secondary text */
+  --color-ink-tertiary:  #666666;  /* Body text, labels */
+  --color-ink-muted:     #999999;  /* Captions, hints, placeholders */
+  --color-ink-faint:     #CCCCCC;  /* Disabled, inactive */
+
+  /* Surfaces */
+  --color-border:          #DDDDD8;  /* All borders and dividers */
+  --color-surface:         #F8F8F6;  /* Page background (warm off-white) */
+  --color-surface-raised:  #FFFFFF;  /* Cards, inputs, modals */
+  --color-surface-sunken:  #F0EFEB;  /* Toggle backgrounds, chip resting state */
+
+  /* Brand accent — used ONLY for pins and primary CTAs */
+  --color-pin:      #E8281A;  /* WF-Here red — the only color in the identity */
+  --color-featured: #111111;  /* Featured business pins (black) */
+
+  /* Wifi quality indicators */
+  --color-wifi-great:  #27A56B;  /* Green — fast wifi */
+  --color-wifi-decent: #BA7517;  /* Amber — okay wifi */
+  --color-wifi-poor:   #E8281A;  /* Red — slow wifi (shares pin red) */
+
+  /* Semantic */
+  --color-success: #27A56B;
+  --color-warning: #BA7517;
+  --color-danger:  #E8281A;
+
+
+  /* ─── Typography ─── */
+
+  --font-sans: SF Pro Display, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: SF Mono, ui-monospace, Menlo, monospace;
+
+  /* Font sizes */
+  --text-xs:   10px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   20px;
+  --text-xl:   28px;
+  --text-2xl:  36px;
+  --text-3xl:  48px;
+  --text-4xl:  52px;
+
+  /* Font weights */
+  --weight-light:   300;
+  --weight-regular: 400;
+  --weight-medium:  500;
+
+  /* Line heights */
+  --leading-tight:  1.1;
+  --leading-snug:   1.35;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+
+  /* ─── Spacing (8px base grid) ─── */
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+
+  /* ─── Border radius ─── */
+
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-2xl:  16px;
+  --radius-full: 9999px;  /* Pills and circles */
+
+
+  /* ─── Borders ─── */
+
+  --border-hairline: 0.5px solid var(--color-border);
+  --border-light:    1px solid var(--color-border);
+  --border-medium:   1.5px solid var(--color-border);
+
+
+  /* ─── Shadows ─── */
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.12);
+
+
+  /* ─── Layout ─── */
+
+  --nav-height:        52px;
+  --nav-height-mobile: 40px;
+  --bottom-nav-height: 44px;
+  --sidebar-width:     320px;
+  --content-max-width: 860px;
+  --text-max-width:    640px;
+
+  /* Breakpoints — use in media queries as reference */
+  /* --bp-mobile: 768px  (used as max-width for mobile styles) */
+  /* --bp-tablet: 1024px */
+
+
+  /* ─── Transitions ─── */
+
+  --transition-fast:   100ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow:   350ms ease;
+
+}

@@ -1,0 +1,77 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 4 — SPOT CARD COMPONENT
+
+Build the spot card component used in the sidebar list on the explore page. All CSS goes in /css/components.css. All JS goes in /js/components.js which you should create now.
+
+CARD STRUCTURE
+
+The card is a div with class "spot-card". 
+
+Background: var(--color-surface-raised). Border: var(--border-hairline). Border-radius: var(--radius-xl) which is 12px. Padding: 12px. Display: flex, flex-direction column, gap 7px. Cursor: pointer.
+
+Hover state: border-color #AAAAAA, transition var(--transition-fast).
+
+Active state — class "spot-card active": border width 1.5px, border-color var(--color-ink). No other changes.
+
+Featured variant — class "spot-card featured": no extra border changes, but show the featured badge described below.
+
+CARD CONTENTS — IN ORDER TOP TO BOTTOM
+
+Section 1 — Name row
+
+A div with display flex, align-items flex-start, justify-content space-between, gap 8px.
+
+Left side contains two lines. Top line: spot name in a span with class "spot-name". Font-size 13px, font-weight var(--weight-medium), color var(--color-ink), letter-spacing -0.2px. If the spot is featured also show a "featured" badge inline next to the name: font-size 10px, background var(--color-ink), color var(--color-surface), padding 2px 7px, border-radius var(--radius-sm). Bottom line: spot type and neighborhood separated by a dot, in a span with class "spot-meta". Font-size 11px, color var(--color-ink-muted).
+
+Right side: a heart icon with class "ti ti-heart" for unsaved state, or "ti ti-heart-filled" with color var(--color-pin) for saved state. Font-size 16px, color var(--color-ink-faint) when unsaved.
+
+Section 2 — Attribute chips
+
+A div with class "spot-attrs" containing small chip spans. Display flex, flex-wrap wrap, gap 5px. Each chip: font-size 10px, padding 2px 8px, border-radius var(--radius-full), background var(--color-surface), border var(--border-hairline), color var(--color-ink-secondary).
+
+Section 3 — Wifi and hours row
+
+A div with display flex, align-items center, justify-content space-between.
+
+Left side: a div with class "spot-wifi" containing a small colored dot and a label. Dot: width 7px, height 7px, border-radius 50%, display inline-block, margin-right 4px. Label and dot color based on wifi quality:
+
+Great wifi — dot and label color #27A56B, label text "great wifi"
+Decent wifi — dot and label color #BA7517, label text "decent wifi"  
+Poor wifi — dot and label color #E8281A, label text "poor wifi"
+
+Font-size 11px for the label.
+
+Right side: hours text such as "open until 6pm" or "open 24hrs". Font-size 11px, color var(--color-ink-muted).
+
+JAVASCRIPT FUNCTION
+
+In /js/components.js create a function called createSpotCard that accepts a spot object and returns the complete card HTML element.
+
+The spot object has these properties: name, type, neighborhood, attributes (array of strings), wifiQuality (either "great", "decent", or "poor"), hours, featured (boolean), saved (boolean).
+
+DEMO SECTION
+
+Add a demo section to /index.html below the pins demo with a white background, padding 2rem, and a heading "Spot Cards". Show five card examples:
+
+Card 1: Ludlow Coffee Supply, café, Lower East Side, attributes fast wifi and outlets and quiet and food, wifi great, hours "open until 6pm", not featured, not saved.
+
+Card 2: The Ace Hotel Lobby, hotel lobby, Midtown, attributes fast wifi and food and drinks and outlets and open late, wifi great, hours "open 24hrs", featured true, not saved.
+
+Card 3: NY Public Library, library, Midtown, attributes free and very quiet and wifi, wifi decent, hours "open until 8pm", not featured, not saved.
+
+Card 4: Blank Street Coffee, café, Williamsburg, attributes fast wifi and food and outlets, wifi great, hours "open until 7pm", not featured, saved true.
+
+Card 5: same as card 1 but with class active added to show the selected state.
+
+WHAT TO DELIVER
+
+/js/components.js with the createSpotCard function. Spot card CSS in /css/components.css. Demo section on index.html showing all five card examples. No console errors.
+
+----------------------------------------------------------------
+
+QA — open index.html. You should see five cards below the pin demo. Card 2 should show a "featured" badge next to the name. Card 4 should show a filled red heart. Card 5 should have a thicker dark border showing the active state. All three wifi dot colors should be visible across the cards. If anything looks off describe it visually to Cursor.

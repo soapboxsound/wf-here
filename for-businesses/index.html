@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>for businesses · wf—here</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/new-york">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+
+  <main class="business-page">
+    <section class="business-hero">
+      <p class="eyebrow">for businesses</p>
+      <h1 class="business-hero-title">Put your spot in front of the people who are looking.</h1>
+      <p class="business-hero-copy">wf—here is where remote workers, freelancers, and laptop-first people find their next workspace. Featured listings get priority placement, a verified badge, and the black pin.</p>
+      <div class="business-cta-row">
+        <button class="business-btn-primary" id="scrollToFeatured" type="button">Get featured</button>
+        <button class="business-btn-secondary" id="scrollToRemoval" type="button">Request removal</button>
+      </div>
+    </section>
+
+    <section class="featured-explainer">
+      <h2 class="business-section-title">What you get</h2>
+      <div class="benefit-grid">
+        <article class="benefit-card">
+          <i class="ti ti-map-pin"></i>
+          <h3>Black pin on the map</h3>
+          <p>Featured spots use a distinct black pin that stands out immediately. You are the first thing people notice when they open the map.</p>
+        </article>
+        <article class="benefit-card">
+          <i class="ti ti-rosette"></i>
+          <h3>Verified badge</h3>
+          <p>A verified badge on your listing signals quality and curation. Users know you have been reviewed and approved by wf—here.</p>
+        </article>
+        <article class="benefit-card">
+          <i class="ti ti-chart-bar"></i>
+          <h3>Priority placement</h3>
+          <p>Featured listings appear at the top of search results and list views. More visibility means more people choosing your space.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="comparison-section">
+      <h2 class="business-section-title">Standard vs featured</h2>
+      <div class="comparison-grid">
+        <div class="comparison-col">
+          <div class="comparison-mock">
+            <div class="comparison-mock-header">
+              <div>
+                <svg width="14" height="22" viewBox="0 0 14 22" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.134 3.134 0 7 0C10.866 0 14 3.134 14 7C14 8.486 13.519 9.859 12.702 10.976L7 22L1.298 10.976C0.481 9.859 0 8.486 0 7ZM7 10C8.657 10 10 8.657 10 7C10 5.343 8.657 4 7 4C5.343 4 4 5.343 4 7C4 8.657 5.343 10 7 10Z" fill="#E8281A"/></svg>
+                <p class="comparison-mock-name">Ludlow Coffee Supply</p>
+                <p class="comparison-mock-meta">café · Lower East Side</p>
+              </div>
+            </div>
+            <div class="comparison-mock-badges">
+              <span class="chip">fast wifi</span>
+              <span class="chip">good coffee</span>
+            </div>
+          </div>
+          <p class="comparison-label">Standard listing — free</p>
+        </div>
+        <div class="comparison-col is-featured-col">
+          <div class="comparison-mock is-featured">
+            <div class="comparison-mock-header">
+              <div>
+                <svg width="14" height="22" viewBox="0 0 14 22" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.134 3.134 0 7 0C10.866 0 14 3.134 14 7C14 8.486 13.519 9.859 12.702 10.976L7 22L1.298 10.976C0.481 9.859 0 8.486 0 7ZM7 10C8.657 10 10 8.657 10 7C10 5.343 8.657 4 7 4C5.343 4 4 5.343 4 7C4 8.657 5.343 10 7 10Z" fill="#111111"/></svg>
+                <p class="comparison-mock-name">Ludlow Coffee Supply <span class="chip" style="font-size:10px;padding:2px 7px;margin-left:4px;">featured</span></p>
+                <p class="comparison-mock-meta">café · Lower East Side</p>
+              </div>
+            </div>
+            <div class="comparison-mock-badges">
+              <span class="chip">fast wifi</span>
+              <span class="chip">good coffee</span>
+            </div>
+          </div>
+          <p class="comparison-label">Featured listing — contact for pricing</p>
+        </div>
+      </div>
+    </section>
+
+    <span id="get-featured"></span>
+    <section class="lead-form-section">
+      <h2 class="business-section-title">Get in touch</h2>
+      <p class="business-form-intro">Tell us about your business and we will be in touch within 48 hours.</p>
+      <div id="featuredLeadFormWrap">
+        <form class="business-form" id="featuredLeadForm">
+          <div class="form-field">
+            <label class="form-label" for="leadBusinessName">Business name</label>
+            <input class="form-input" id="leadBusinessName" type="text" placeholder="e.g. Ludlow Coffee Supply" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="leadContactName">Your name</label>
+            <input class="form-input" id="leadContactName" type="text" placeholder="First and last name" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="leadEmail">Email</label>
+            <input class="form-input" id="leadEmail" type="email" placeholder="you@yourbusiness.com" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="leadPhone">Phone</label>
+            <input class="form-input" id="leadPhone" type="tel" placeholder="Optional">
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="leadLocation">Location</label>
+            <input class="form-input" id="leadLocation" type="text" placeholder="Address or neighborhood" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="leadMessage">Message</label>
+            <textarea class="form-textarea" id="leadMessage" placeholder="Tell us about your space and why it would be a great fit for wf—here." required></textarea>
+          </div>
+          <button class="business-form-submit is-primary" type="submit">Send enquiry</button>
+          <p class="business-form-error" id="leadFormError" hidden>Something went wrong. Please try again.</p>
+        </form>
+      </div>
+    </section>
+
+    <span id="removal-request"></span>
+    <section class="removal-section">
+      <h2 class="business-section-title">Remove your listing</h2>
+      <p class="business-form-intro">If your business is listed on wf—here and you would like it removed, fill out this form. We will process your request within 5 business days.</p>
+      <div id="removalFormWrap">
+        <form class="business-form" id="removalForm">
+          <div class="form-field">
+            <label class="form-label" for="removalBusinessName">Business name</label>
+            <input class="form-input" id="removalBusinessName" type="text" placeholder="Name of your business as it appears on wf—here" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="removalContactName">Your name</label>
+            <input class="form-input" id="removalContactName" type="text" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="removalEmail">Email</label>
+            <input class="form-input" id="removalEmail" type="email" placeholder="Contact email" required>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="removalReason">Reason</label>
+            <select class="form-select" id="removalReason" required>
+              <option value="Incorrect information">Incorrect information</option>
+              <option value="Business is closed">Business is closed</option>
+              <option value="Privacy concerns">Privacy concerns</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="removalNotes">Additional notes</label>
+            <textarea class="form-textarea" id="removalNotes" placeholder="Anything else we should know?"></textarea>
+          </div>
+          <button class="business-form-submit is-secondary" type="submit">Submit removal request</button>
+          <p class="business-form-error" id="removalFormError" hidden>Something went wrong. Please try again.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <img class="footer-logo" src="/assets/logo-primary.svg" alt="wf—here" height="20">
+    <div class="footer-links">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a href="/">about</a>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { submitFeaturedLead, submitRemovalRequest } from "/js/db.js";
+
+    function scrollToAnchor(id) {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    document.getElementById("scrollToFeatured").addEventListener("click", () => {
+      scrollToAnchor("get-featured");
+    });
+
+    document.getElementById("scrollToRemoval").addEventListener("click", () => {
+      scrollToAnchor("removal-request");
+    });
+
+    function showFormSuccess(wrapperId, title, message) {
+      const wrapper = document.getElementById(wrapperId);
+      wrapper.innerHTML = `
+        <div class="business-form-success">
+          <h2>${title}</h2>
+          <p>${message}</p>
+        </div>
+      `;
+    }
+
+    const featuredLeadForm = document.getElementById("featuredLeadForm");
+    const leadFormError = document.getElementById("leadFormError");
+
+    featuredLeadForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      leadFormError.hidden = true;
+
+      const submitButton = featuredLeadForm.querySelector("button[type='submit']");
+      const originalLabel = submitButton.textContent;
+      submitButton.disabled = true;
+      submitButton.textContent = "Sending...";
+
+      try {
+        await submitFeaturedLead({
+          businessName: document.getElementById("leadBusinessName").value.trim(),
+          contactName: document.getElementById("leadContactName").value.trim(),
+          email: document.getElementById("leadEmail").value.trim(),
+          phone: document.getElementById("leadPhone").value.trim(),
+          location: document.getElementById("leadLocation").value.trim(),
+          message: document.getElementById("leadMessage").value.trim()
+        });
+
+        showFormSuccess(
+          "featuredLeadFormWrap",
+          "Thanks — we will be in touch within 48 hours.",
+          "A member of the wf—here team will follow up by email."
+        );
+      } catch (error) {
+        console.error("Failed to submit featured lead", error);
+        leadFormError.hidden = false;
+        submitButton.disabled = false;
+        submitButton.textContent = originalLabel;
+      }
+    });
+
+    const removalForm = document.getElementById("removalForm");
+    const removalFormError = document.getElementById("removalFormError");
+
+    removalForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      removalFormError.hidden = true;
+
+      const submitButton = removalForm.querySelector("button[type='submit']");
+      const originalLabel = submitButton.textContent;
+      submitButton.disabled = true;
+      submitButton.textContent = "Submitting...";
+
+      try {
+        await submitRemovalRequest({
+          businessName: document.getElementById("removalBusinessName").value.trim(),
+          contactName: document.getElementById("removalContactName").value.trim(),
+          email: document.getElementById("removalEmail").value.trim(),
+          reason: document.getElementById("removalReason").value,
+          notes: document.getElementById("removalNotes").value.trim()
+        });
+
+        showFormSuccess(
+          "removalFormWrap",
+          "Request received.",
+          "We will process this within 5 business days."
+        );
+      } catch (error) {
+        console.error("Failed to submit removal request", error);
+        removalFormError.hidden = false;
+        submitButton.disabled = false;
+        submitButton.textContent = originalLabel;
+      }
+    });
+  </script>
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+</body>
+</html>

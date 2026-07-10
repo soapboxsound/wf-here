@@ -1,0 +1,92 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 6 — HOMEPAGE
+
+Build the complete WF-Here homepage at /index.html. The nav component is already in the file. Add all new HTML below the nav. All new CSS goes in /css/components.css. Add page-specific layout CSS in a style tag in the index.html head.
+
+The homepage has five sections below the nav: hero, map preview, how it works, submit CTA band, and footer.
+
+SECTION 1 — HERO
+
+A section element with class "hero". Max-width 640px, margin 0 auto, padding 5rem 2rem 3.5rem, text-align center.
+
+Eyebrow text: a p tag with class "eyebrow" containing "New York · Los Angeles". Font-size var(--text-xs), font-weight var(--weight-medium), text-transform uppercase, letter-spacing 0.1em, color var(--color-ink-muted), margin-bottom 1.5rem.
+
+Heading: an h1 containing two lines. Line 1: "Your office is" in a span with font-weight var(--weight-light). Line 2: "out there." in a span with font-weight var(--weight-medium). Overall: font-size var(--text-3xl) which is 48px, letter-spacing -2.5px, line-height 1.05, color var(--color-ink), margin-bottom 1.25rem.
+
+Sub text: a p tag. Content: "Find cafés, libraries, lobbies, and hidden spots with great wifi, good food, and the right vibe." Font-size var(--text-md), color var(--color-ink-tertiary), line-height 1.65, max-width 400px, margin 0 auto 2.5rem auto.
+
+City picker: a div with class "city-picker". Background var(--color-surface-raised), border var(--border-hairline), border-radius 10px, overflow hidden, max-width 380px, margin 0 auto 1rem auto, display flex.
+
+Inside the city picker: a button with class "city-btn" containing "New York" with data attribute data-city="new-york", a div with class "city-divider" that is width 0.5px and background var(--color-border), another button with class "city-btn" containing "Los Angeles" with data attribute data-city="los-angeles", and a button with class "city-go" containing a small white pin SVG icon and the text "explore".
+
+City btn styles: flex 1, padding 14px 0, font-size 15px, font-weight var(--weight-light), color var(--color-ink), background transparent, border none, cursor pointer, font-family inherit. Hover: background var(--color-surface).
+
+City go button styles: padding 0 20px, background var(--color-pin), color white, border none, font-size var(--text-sm), font-weight var(--weight-medium), cursor pointer, font-family inherit, display flex, align-items center, gap 8px.
+
+The pin SVG icon inside city-go: use this SVG inline at width 10px height 15px with white fill:
+<svg width="10" height="15" viewBox="0 0 14 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.134 3.134 0 7 0C10.866 0 14 3.134 14 7C14 8.486 13.519 9.859 12.702 10.976L7 22L1.298 10.976C0.481 9.859 0 8.486 0 7ZM7 10C8.657 10 10 8.657 10 7C10 5.343 8.657 4 7 4C5.343 4 4 5.343 4 7C4 8.657 5.343 10 7 10Z" fill="white"/></svg>
+
+Clicking either city button or the explore button navigates to /explore/index.html.
+
+Note text below city picker: "30+ curated spots in New York · LA coming soon". Font-size var(--text-sm), color var(--color-ink-faint).
+
+SECTION 2 — MAP PREVIEW
+
+A div with class "map-section". Max-width 860px, margin 0 auto, padding 0 2rem 4rem.
+
+Inside: a div with class "map-frame". Background #E8E5DF, border-radius var(--radius-xl), overflow hidden, position relative, height 320px, border var(--border-hairline).
+
+For now put a placeholder inside the map frame: a div filling 100% with background #E8E5DF, display flex, align-items center, justify-content center, containing a p tag with text "Mapbox map loads here" in color var(--color-ink-muted), font-size var(--text-sm). We will wire up the real Mapbox map in Brief 7.
+
+Also add inside the map frame a filter bar overlay: position absolute, top 14px, left 14px, right 14px, display flex, justify-content space-between, align-items center. Left side: a div with class "chip-group" containing filter chips for all, wifi, food, quiet, open late — use the filter chip CSS from components.css but make them slightly smaller, padding 5px 11px. Right side: a div showing "42 spots" — background white, border var(--border-hairline), border-radius var(--radius-md), padding 5px 10px, font-size var(--text-xs), color var(--color-ink-tertiary).
+
+SECTION 3 — HOW IT WORKS
+
+A section element with class "how-section". Max-width 780px, margin 0 auto, padding 3rem 2rem.
+
+Eyebrow: "how it works" — same eyebrow styles as hero, text-align center.
+
+Title: "Find your spot in three steps." — font-size var(--text-xl) which is 28px, font-weight var(--weight-light), color var(--color-ink), letter-spacing -1px, text-align center, margin-bottom 2.5rem.
+
+Three steps in a grid: display grid, grid-template-columns repeat 3 1fr, gap 2rem. On mobile: single column.
+
+Each step contains: a step number p tag with class "step-num" (font-size var(--text-xs), font-weight var(--weight-medium), color var(--color-pin), letter-spacing 0.04em, margin-bottom 8px), a step title p tag with class "step-title" (font-size 15px, font-weight var(--weight-medium), color var(--color-ink), letter-spacing -0.3px, margin-bottom 6px), and a step description p tag with class "step-desc" (font-size var(--text-sm), color var(--color-ink-tertiary), line-height 1.65).
+
+Step 1: number "01", title "Pick your city", description "New York or LA to start. Every spot hand-curated — no junk, no spam listings."
+
+Step 2: number "02", title "Filter your needs", description "Wifi speed, noise level, food, power outlets, hours. Set it and find the right fit."
+
+Step 3: number "03", title "Get to work", description "Check the vibe, get directions. Then go settle in."
+
+SECTION 4 — SUBMIT CTA BAND
+
+A div with class "cta-band". Margin 0 2rem 4rem, background var(--color-ink), border-radius var(--radius-xl), padding 2.5rem. Display flex, align-items center, justify-content space-between, gap 2rem, flex-wrap wrap.
+
+Left side: a div containing two p tags. First p: "Know a spot worth sharing?" — font-size 22px, font-weight var(--weight-light), color var(--color-surface), letter-spacing -0.5px, margin-bottom 6px. Second p: "Submit it. If it passes the vibe check, it goes on the map." — font-size var(--text-sm), color #666666.
+
+Right side: a button or anchor tag with text "submit a spot ↗" linking to /submit/index.html. Padding 11px 22px, background var(--color-pin), color white, border none, border-radius var(--radius-md), font-size var(--text-sm), font-weight var(--weight-medium), cursor pointer, font-family inherit.
+
+SECTION 5 — FOOTER
+
+A footer element with class "footer". Border-top var(--border-hairline), padding 1.25rem 2rem, display flex, align-items center, justify-content space-between, flex-wrap wrap, gap 12px.
+
+Left side: the primary logo image at height 20px but with CSS filter to make it appear gray. Use: filter: grayscale(1) opacity(0.4).
+
+Right side: four anchor tags — explore, submit a spot, for businesses, about — each with font-size var(--text-sm), color var(--color-ink-faint), text-decoration none, display flex, gap 20px.
+
+RESPONSIVE — below 768px
+
+Hero title: font-size 32px. City picker: max-width 100%. Map preview: height 200px. How it works steps: single column grid. CTA band: flex-direction column, align-items flex-start. CTA button: width 100%.
+
+WHAT TO DELIVER
+
+Complete responsive homepage with all five sections. No Mapbox yet — placeholder only. All interactions working (city picker navigates to explore). No console errors.
+
+----------------------------------------------------------------
+
+QA — open index.html. You should see: warm off-white background, nav at top, large hero headline with city picker, map placeholder section, three-column how it works, dark CTA band, and footer with muted logo. Resize to mobile — hero title should shrink, steps should stack, CTA button should go full width. Click the explore button and confirm it navigates to /explore/index.html.

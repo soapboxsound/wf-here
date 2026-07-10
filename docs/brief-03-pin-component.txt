@@ -1,0 +1,58 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 3 — MAP PIN COMPONENT
+
+Create reusable SVG map pin components for WF-Here. These will be used on the map page. All CSS goes in /css/components.css. All JS goes in /js/pins.js which you should create now.
+
+THE PIN SHAPE
+
+There are two pin types: standard (red) and featured (black).
+
+Use this exact SVG path for both pin types — this is the real WF-Here logo pin shape:
+
+<path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.13401 3.13401 0 7 0C10.866 0 14 3.13401 14 7C14 8.48601 13.519 9.85901 12.702 10.976L7 22L1.29799 10.976C0.480995 9.85901 0 8.48601 0 7ZM7 10C8.65685 10 10 8.65685 10 7C10 5.34315 8.65685 4 7 4C5.34315 4 4 5.34315 4 7C4 8.65685 5.34315 10 7 10Z" fill="FILL_COLOR_HERE"/>
+
+Standard pin fill color: var(--color-pin) which is #E8281A
+Featured pin fill color: var(--color-featured) which is #111111
+
+PIN SIZES
+
+Create three sizes using CSS classes:
+
+Class "pin-lg": SVG viewBox "0 0 14 22", width 14px, height 22px
+Class "pin-md": SVG viewBox "0 0 14 22", width 11px, height 17px
+Class "pin-sm": SVG viewBox "0 0 14 22", width 8px, height 13px
+
+PIN JAVASCRIPT FUNCTION
+
+In /js/pins.js create and export a function called createPin that accepts an options object with these properties: type (either "standard" or "featured"), size (either "lg", "md", or "sm"), name (string, optional), showLabel (boolean, optional).
+
+The function returns a div element with class "map-pin" containing the SVG element. If showLabel is true and name is provided, add a span below the SVG with class "pin-label" containing the name text.
+
+PIN LABEL STYLES
+
+Standard pin label: background var(--color-surface-raised), border var(--border-hairline), color var(--color-ink), font-size var(--text-xs), padding 2px 7px, border-radius var(--radius-sm), white-space nowrap, margin-top 3px.
+
+Featured pin label: background var(--color-ink), color var(--color-surface), font-size var(--text-xs), padding 2px 7px, border-radius var(--radius-sm), white-space nowrap, margin-top 3px. No border.
+
+Map pin wrapper styles: display inline-flex, flex-direction column, align-items center, cursor pointer.
+
+DEMO SECTION
+
+Add a temporary demo section to /index.html body (below the nav, we will remove it later) that shows all pin variations so we can QA them visually:
+
+A gray background div, padding 2rem, display flex, gap 2rem, flex-wrap wrap, align-items flex-end.
+
+Show: standard pin large, standard pin medium, standard pin small, featured pin large, featured pin medium, featured pin small, standard pin large with label "Ludlow Coffee", featured pin large with label "The Ace Hotel".
+
+WHAT TO DELIVER
+
+/js/pins.js with the createPin function. Pin CSS in /css/components.css. Demo section on index.html showing all pin variations. No console errors.
+
+----------------------------------------------------------------
+
+QA — open index.html. You should see a row of pins in two colors at three sizes, with two of them showing labels below. The red pins should be #E8281A and the black pins should be #111111. The shapes should be smooth teardrop shapes matching the WF-Here logo pin. If any pin looks like a generic circle or blob tell Cursor to use the exact SVG path provided in the brief.

@@ -1,0 +1,110 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 7 — MAP EXPLORE PAGE
+
+Build the WF-Here explore page at /explore/index.html. This is the core product screen. The nav component is already in the file. Replace the nav with the modified explore nav described below, then build the rest of the page.
+
+You will need a Mapbox account and public token. Sign up free at mapbox.com and paste the token into the code where indicated. The free tier covers 50,000 map loads per month which is plenty to start.
+
+Add the Mapbox GL JS library to the explore page head:
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
+PAGE LAYOUT
+
+The page must be exactly viewport height with no outer scroll. Body and html: height 100%, overflow hidden.
+
+The page structure after the nav is a single div with class "explore-body": display flex, height calc(100vh minus var(--nav-height)), overflow hidden.
+
+Inside explore-body: a sidebar div (class "sidebar") and a map area div (class "map-area").
+
+MODIFIED NAV FOR EXPLORE PAGE
+
+Keep the existing nav structure but make these changes for the explore page only:
+
+Replace the full primary logo with the secondary logo mark at height 28px.
+
+Add a city toggle in the center of the nav: a div with class "city-toggle" containing two buttons — "New York" and "Los Angeles". Style: display flex, background var(--color-surface-sunken), border-radius var(--radius-md), padding 2px, gap 2px. Each button: padding 4px 12px, font-size var(--text-sm), color var(--color-ink-muted), background transparent, border none, border-radius var(--radius-sm), cursor pointer, font-family inherit. Active button: background var(--color-surface-raised), color var(--color-ink), border var(--border-hairline). Default active: New York.
+
+Add a search input between city toggle and nav links: display flex, align-items center, gap 8px, background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-lg), padding 6px 12px, width 220px. Inside: a search icon using class "ti ti-search" at font-size 14px color var(--color-ink-faint), and an input with placeholder "Search spots, neighborhoods…", font-size var(--text-sm), border none, background transparent, outline none, width 100%, font-family inherit.
+
+SIDEBAR
+
+Width: var(--sidebar-width) which is 320px. Flex-shrink 0. Border-right var(--border-hairline). Background var(--color-surface). Display flex, flex-direction column. Overflow hidden.
+
+Filter row at top of sidebar: padding 10px 14px, border-bottom var(--border-hairline), flex-shrink 0, display flex, gap 6px, overflow-x auto. Hide scrollbar. Chips: all, fast wifi, quiet, food, outlets, open late, free. Make them slightly smaller than standard chips: padding 4px 11px, font-size var(--text-xs).
+
+Results header below filter row: padding 10px 14px 6px, display flex, align-items center, justify-content space-between, flex-shrink 0. Left: "42 spots in New York" — font-size var(--text-sm), color var(--color-ink-muted). Right: "best match" with a chevron-down icon — font-size var(--text-sm), color var(--color-ink), display flex, align-items center, gap 4px, cursor pointer.
+
+Spot list: flex 1, overflow-y auto, padding 4px 10px 10px, display flex, flex-direction column, gap 6px. Use thin custom scrollbar.
+
+Populate the list with these six sample spots using createSpotCard from /js/components.js:
+
+Spot 1 — name "Ludlow Coffee Supply", type "café", neighborhood "Lower East Side", attributes ["fast wifi", "outlets", "quiet", "food"], wifiQuality "great", hours "open until 6pm", featured false, saved true. Add class "active" to this card.
+
+Spot 2 — name "The Ace Hotel Lobby", type "hotel lobby", neighborhood "Midtown", attributes ["fast wifi", "food + drinks", "outlets", "open late"], wifiQuality "great", hours "open 24hrs", featured true, saved false.
+
+Spot 3 — name "NY Public Library", type "library", neighborhood "Midtown", attributes ["free", "very quiet", "wifi"], wifiQuality "decent", hours "open until 8pm", featured false, saved false.
+
+Spot 4 — name "Blank Street Coffee", type "café", neighborhood "Williamsburg", attributes ["fast wifi", "food", "outlets"], wifiQuality "great", hours "open until 7pm", featured false, saved false.
+
+Spot 5 — name "Industry City Courtyard", type "mixed use", neighborhood "Sunset Park", attributes ["fast wifi", "food", "outdoor seating"], wifiQuality "great", hours "open until 9pm", featured false, saved false.
+
+Spot 6 — name "McNally Jackson Books", type "bookstore café", neighborhood "Nolita", attributes ["wifi", "quiet", "food"], wifiQuality "decent", hours "open until 10pm", featured false, saved false.
+
+MAP AREA
+
+Class "map-area". Flex 1. Position relative. Overflow hidden.
+
+Initialize a Mapbox GL JS map inside this div. Map options: center on Manhattan at longitude -73.9857 latitude 40.7484, zoom level 13, style use "mapbox://styles/mapbox/light-v11" as the starting point (we will customize this later).
+
+Replace YOUR_MAPBOX_TOKEN with a comment: // PASTE YOUR MAPBOX PUBLIC TOKEN HERE
+
+Add these map controls: NavigationControl (plus and minus zoom) positioned top-right. A custom current location button positioned below the zoom controls — white background, hairline border, border-radius var(--radius-md), width 32px, height 32px, display flex, align-items center, justify-content center, cursor pointer, containing an icon with class "ti ti-current-location" at font-size 14px.
+
+Map and list toggle: position absolute, top 14px, left 14px. A div containing two buttons — "map" with icon "ti ti-map-2" and "list" with icon "ti ti-list". Same toggle style as city toggle. Map is active by default. When list is clicked hide the map and show a full-screen list view using the sidebar content.
+
+Spot count: position absolute, top 14px, right 56px (leaving room for zoom controls). White background, hairline border, border-radius var(--radius-md), padding 5px 10px, font-size var(--text-xs), color var(--color-ink-tertiary), text "42 spots".
+
+SAMPLE PINS
+
+Add six sample pins to the map using the createPin function from /js/pins.js. Use Mapbox markers for these. Place them at these approximate Manhattan coordinates:
+
+Ludlow Coffee Supply: longitude -73.988 latitude 40.721 — standard pin, show label
+The Ace Hotel: longitude -73.990 latitude 40.754 — featured pin, show label
+NY Public Library: longitude -73.982 latitude 40.753 — standard pin
+Blank Street Williamsburg: longitude -73.963 latitude 40.714 — standard pin
+Industry City: longitude -74.009 latitude 40.656 — standard pin
+McNally Jackson: longitude -73.996 latitude 40.724 — standard pin
+
+MAP POPUP
+
+When a pin is clicked show a popup. Create this as a custom HTML popup, not the default Mapbox popup.
+
+Position: absolute, bottom 20px, left 50% transform translateX(-50%). Background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-xl), padding 14px 16px, width 240px, z-index 10.
+
+Popup contents: spot name (font-size var(--text-md), weight medium), spot type (font-size var(--text-xs), color muted), attribute chips (small), footer row with wifi quality dot and label on the left and a "view spot" button on the right. View spot button: background var(--color-ink), color var(--color-surface), font-size var(--text-xs), padding 5px 12px, border-radius var(--radius-md), border none, cursor pointer.
+
+Show Ludlow Coffee Supply popup by default on page load.
+
+Clicking view spot navigates to /place/index.html.
+
+SIDEBAR AND MAP INTERACTION
+
+Clicking a pin highlights the corresponding sidebar card (adds active class, removes from others) and scrolls it into view. Clicking a sidebar card flies the map to that location and shows the popup.
+
+RESPONSIVE — mobile below 768px
+
+Hide the sidebar entirely. Map fills full screen. Filter chips appear in a horizontally scrollable row above the map (fixed below the mobile nav). Popup appears at bottom of screen full width. Map and list toggle moves to top-left of screen. Bottom nav shows as normal.
+
+WHAT TO DELIVER
+
+Complete explore page with real Mapbox map, sidebar with sample spots, six pins on the map, working popup, sidebar and map interaction, and mobile layout. Token placeholder clearly marked in the code.
+
+----------------------------------------------------------------
+
+QA — open /explore/index.html. You should see a two-column layout with the spot list on the left and a Mapbox map on the right. Note: the map will not load until you paste your Mapbox public token into the code. Once you do, you should see a map of Manhattan with six pins. Click a pin and confirm the popup appears and the sidebar card highlights. Click a sidebar card and confirm the map moves to that location. On mobile the sidebar should be hidden and the map should be full screen.

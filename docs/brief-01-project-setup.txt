@@ -1,0 +1,71 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 1 — PROJECT SETUP + DESIGN TOKENS
+
+Create the project structure and global design system for WF-Here. The /css/tokens.css file already exists with all design tokens — do not recreate it or change it.
+
+CREATE this folder structure and all files listed:
+
+/index.html
+/explore/index.html
+/place/index.html
+/submit/index.html
+/login/index.html
+/profile/index.html
+/for-businesses/index.html
+/new-york/index.html
+/los-angeles/index.html
+/admin/queue/index.html
+/admin/listings/index.html
+/css/global.css
+/css/components.css
+/js/main.js
+
+For /css/global.css write these styles:
+
+Box-sizing border-box on everything, no default margins or padding. Body: background var(--color-surface), color var(--color-ink), font-family var(--font-sans), font-size var(--text-base), line-height 1.5, letter-spacing -0.01em. Headings h1 through h4: font-weight var(--weight-light), letter-spacing -0.03em, line-height 1.1. Links: no underline, color inherit. Selection: background #111111, color #F8F8F6. Scrollbar: width 4px, thumb color var(--color-border), track transparent. img: display block, max-width 100%. button: cursor pointer, font-family inherit.
+
+For every HTML file add this exact boilerplate and nothing more:
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAGE TITLE HERE</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+
+</body>
+</html>
+
+Set the correct page title for each file:
+
+index.html — wf—here · find your workspace
+explore/index.html — explore · wf—here
+place/index.html — wf—here
+submit/index.html — submit a spot · wf—here
+login/index.html — sign in · wf—here
+profile/index.html — profile · wf—here
+for-businesses/index.html — for businesses · wf—here
+new-york/index.html — new york workspaces · wf—here
+los-angeles/index.html — los angeles workspaces · wf—here
+admin/queue/index.html — review queue · wf—here admin
+admin/listings/index.html — listings · wf—here admin
+
+Leave /css/components.css and /js/main.js empty — just create the files.
+
+When done, confirm every file has been created and that tokens.css, global.css, and components.css are all linked correctly on every page.
+
+----------------------------------------------------------------
+
+QA — open any HTML file in Chrome. You should see a blank warm off-white page (#F8F8F6). If it is pure white, tokens.css is not linking correctly — tell Cursor and it will fix it. That is your green light to move to Brief 2.

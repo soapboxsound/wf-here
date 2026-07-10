@@ -1,0 +1,74 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 2 — NAV COMPONENT DESKTOP AND MOBILE
+
+Build the nav component for WF-Here and add it to every HTML page.
+
+All nav CSS goes in /css/components.css. Do not edit global.css or tokens.css.
+
+DESKTOP NAV
+
+Create a nav element with class "nav" at the top of every page body.
+
+Height: var(--nav-height) which is 52px. Background: var(--color-surface). Border bottom: var(--border-hairline). Padding: 0 2rem. Layout: flex, align-items center, justify-content space-between. Position: sticky, top 0, z-index 100.
+
+Left side — logo: an anchor tag linking to / containing the primary logo image at height 28px with alt text "wf—here". Image source: /assets/logo-primary.svg
+
+Right side — nav links as anchor tags: "explore" linking to /explore/index.html, "submit a spot" linking to /submit/index.html, "for businesses" linking to /for-businesses/index.html, and a "sign in" button linking to /login/index.html.
+
+Nav link styles: font-size var(--text-sm), color var(--color-ink-tertiary), no underline, hover color var(--color-ink), transition var(--transition-fast).
+
+Sign in button styles: background var(--color-ink), color var(--color-surface), padding 6px 14px, border-radius var(--radius-md), font-size var(--text-sm), no border, hover background var(--color-ink-secondary).
+
+MOBILE NAV — applies at max-width 768px
+
+Height: var(--nav-height-mobile) which is 40px. Padding: 0 1rem.
+
+Left side — secondary logo mark: anchor tag linking to / containing the secondary logo image at height 24px. Image source: /assets/logo-secondary.svg
+
+Right side — sign in button only, same styles as desktop but padding 5px 12px.
+
+Hide all desktop nav links on mobile.
+
+BOTTOM NAV BAR — mobile only, max-width 768px
+
+Create a second nav element with class "bottom-nav" fixed to the bottom of every page.
+
+Height: var(--bottom-nav-height) which is 44px. Position: fixed, bottom 0, left 0, right 0, z-index 100. Background: var(--color-surface). Border top: var(--border-hairline). Display: flex.
+
+Five items. Each item is an anchor tag with class "bn-item": flex 1, display flex, flex-direction column, align-items center, justify-content center, gap 2px, text-decoration none.
+
+Item 1: icon class "ti ti-home", label "home", links to /index.html
+Item 2: icon class "ti ti-map-2", label "explore", links to /explore/index.html
+Item 3: icon class "ti ti-circle-plus", label "submit", links to /submit/index.html
+Item 4: icon class "ti ti-heart", label "saved", links to /profile/index.html
+Item 5: icon class "ti ti-user", label "profile", links to /profile/index.html
+
+Default icon styles: font-size 20px, color var(--color-ink-faint). Exception: item 3 submit icon is always font-size 24px, color var(--color-pin) — never faint.
+
+Default label styles: font-size 9px, color var(--color-ink-faint).
+
+Active state — add class "active" to the correct item per page. Active icon color: var(--color-pin). Active label color: var(--color-ink).
+
+Active page mapping:
+index.html — home is active
+explore/index.html — explore is active
+submit/index.html — submit is active
+profile/index.html — profile is active
+All other pages — no active state
+
+Add bottom padding to page body on mobile so content does not hide behind the bottom nav. Use padding-bottom: var(--bottom-nav-height) on body, inside the mobile media query only.
+
+TABLER ICONS are already linked in every HTML head from Brief 1. No changes needed to the HTML head.
+
+WHAT TO DELIVER
+
+Nav HTML added to the body of every HTML page. All nav CSS in /css/components.css. Desktop nav fully styled and functional. Mobile nav with secondary logo showing correctly. Bottom nav bar appearing on mobile only. Correct active state on each page. No console errors.
+
+----------------------------------------------------------------
+
+QA — at 1440px desktop: logo visible left, four links right, nav sticks on scroll. At 390px mobile: secondary logo mark left, sign in button right, bottom nav fixed at bottom with all five icons. Click every nav link and confirm it goes to the right page. If any link gives a 404 error tell Cursor which one and it will fix the path.

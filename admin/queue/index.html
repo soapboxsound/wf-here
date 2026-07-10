@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>review queue · wf—here admin</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/new-york">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+
+  <main class="admin-queue-page">
+    <nav class="admin-subnav" aria-label="Admin navigation">
+      <a class="is-active" href="/admin/queue">Review queue</a>
+      <a href="/admin/listings">Listings</a>
+    </nav>
+
+    <h1 class="admin-queue-title">Review queue</h1>
+    <p class="admin-queue-count" id="queueCount">0 pending submissions</p>
+    <div id="queueList"></div>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module">
+    import { getPhotoUrl } from "/js/places.js";
+    import { db } from "/js/firebase.js";
+    import {
+      addDoc,
+      collection,
+      doc,
+      onSnapshot,
+      query,
+      updateDoc,
+      where
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const queueCount = document.getElementById("queueCount");
+    const queueList = document.getElementById("queueList");
+    const pendingQuery = query(collection(db, "submissions"), where("status", "==", "pending"));
+
+    let knownSubmissionIds = new Set();
+    let isInitialQueueLoad = true;
+
+    const cityLabels = {
+      "new-york": "New York",
+      "los-angeles": "Los Angeles"
+    };
+
+    function slugify(name = "") {
+      return name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+    }
+
+    function formatLabel(value = "") {
+      if (!value) {
+        return "—";
+      }
+
+      return value
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+
+    function formatType(type = "") {
+      return formatLabel(type.replace(/-/g, " "));
+    }
+
+    function formatDate(createdAt) {
+      if (!createdAt) {
+        return "";
+      }
+
+      const date = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `admin-toast ${type === "success" ? "is-success" : "is-muted"}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      window.setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    function removeCard(card) {
+      card.classList.add("is-removing");
+      window.setTimeout(() => {
+        card.remove();
+        const remainingCards = queueList.querySelectorAll(".review-card:not(.is-removing)").length;
+        if (!remainingCards) {
+          renderEmptyState();
+        }
+      }, 300);
+    }
+
+    function updateCount(count) {
+      queueCount.textContent = `${count} pending submission${count === 1 ? "" : "s"}`;
+    }
+
+    function renderQueue(submissions) {
+      const pendingIds = new Set(submissions.map((submission) => submission.id));
+
+      queueList.querySelectorAll(".review-card:not(.is-removing)").forEach((card) => {
+        if (!pendingIds.has(card.dataset.id)) {
+          card.remove();
+        }
+      });
+
+      if (!submissions.length && !queueList.querySelector(".review-card")) {
+        renderEmptyState();
+        return;
+      }
+
+      const emptyState = queueList.querySelector(".admin-queue-empty");
+      if (emptyState) {
+        emptyState.remove();
+      }
+
+      submissions.forEach((submission) => {
+        if (!queueList.querySelector(`[data-id="${submission.id}"]`)) {
+          queueList.appendChild(renderSubmissionCard(submission));
+        }
+      });
+
+      updateCount(submissions.length);
+    }
+
+    function renderEmptyState() {
+      queueList.innerHTML = `
+        <div class="admin-queue-empty">
+          <svg width="32" height="32" viewBox="0 0 14 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.134 3.134 0 7 0C10.866 0 14 3.134 14 7C14 8.486 13.519 9.859 12.702 10.976L7 22L1.298 10.976C0.481 9.859 0 8.486 0 7ZM7 10C8.657 10 10 8.657 10 7C10 5.343 8.657 4 7 4C5.343 4 4 5.343 4 7C4 8.657 5.343 10 7 10Z" fill="currentColor"/></svg>
+          <p>Queue is empty. You're all caught up.</p>
+        </div>
+      `;
+      queueCount.textContent = "0 pending submissions";
+    }
+
+    function createDetailCard(label, value) {
+      return `
+        <div class="attr-card">
+          <p class="attr-label">${label}</p>
+          <p class="attr-value">${value || "—"}</p>
+        </div>
+      `;
+    }
+
+    function buildListingFromSubmission(submission) {
+      return {
+        name: submission.name,
+        slug: slugify(submission.name),
+        city: submission.city,
+        type: submission.type,
+        address: submission.address,
+        neighborhood: submission.neighborhood || "",
+        lat: submission.lat || 0,
+        lng: submission.lng || 0,
+        googlePlaceId: submission.googlePlaceId || "",
+        status: "approved",
+        featured: false,
+        wifiNetwork: submission.wifiNetwork || "",
+        wifiPassword: submission.wifiPassword || "",
+        wifiSpeed: submission.wifiSpeed || "decent",
+        wifiMbps: 0,
+        noiseLevel: submission.noiseLevel || "",
+        outlets: submission.outlets || "",
+        food: submission.food || "",
+        seating: submission.seating || [],
+        hours: submission.hours || "",
+        costToSit: submission.costToSit || "",
+        bathroom: Boolean(submission.bathroomAvailable),
+        bathroomCode: submission.bathroomCode || "",
+        bathroomNotes: submission.bathroomNotes || "",
+        vibeTags: submission.vibeTags?.length
+          ? submission.vibeTags
+          : submission.attributes || [],
+        photos: submission.photos || [],
+        submittedBy: submission.submitterEmail || "community"
+      };
+    }
+
+    async function approveSubmission(submission, card) {
+      const listing = buildListingFromSubmission(submission);
+      await addDoc(collection(db, "listings"), listing);
+      await updateDoc(doc(db, "submissions", submission.id), {
+        status: "approved",
+        slug: listing.slug
+      });
+      removeCard(card);
+      showToast("Spot approved and added to listings.");
+    }
+
+    async function rejectSubmission(submission, card) {
+      await updateDoc(doc(db, "submissions", submission.id), { status: "rejected" });
+      removeCard(card);
+      showToast("Submission rejected.", "muted");
+    }
+
+    function renderSubmissionCard(submission) {
+      const card = document.createElement("article");
+      card.className = "review-card";
+      card.dataset.id = submission.id;
+
+      const bathroomLabel = submission.bathroomAvailable ? "Yes" : "No";
+      const seatingLabel = Array.isArray(submission.seating) && submission.seating.length
+        ? submission.seating.map((value) => formatLabel(value)).join(", ")
+        : "—";
+      const vibeLabel = Array.isArray(submission.vibeTags) && submission.vibeTags.length
+        ? submission.vibeTags.join(", ")
+        : "—";
+      const notesMarkup = submission.notes
+        ? `<blockquote class="review-notes">${submission.notes}</blockquote>`
+        : "";
+      const photoMarkup = submission.googlePhotoRef
+        ? `<div class="review-card-photo" style="background-image: url('${getPhotoUrl(submission.googlePhotoRef)}')"></div>`
+        : "";
+      const submissionPhotosMarkup = Array.isArray(submission.photos) && submission.photos.length
+        ? `<div class="review-photo-grid">${submission.photos
+            .map((url) => `<div class="review-card-photo" style="background-image: url('${url}')"></div>`)
+            .join("")}</div>`
+        : "";
+      const coordinatesLabel =
+        submission.lat && submission.lng ? `${submission.lat}, ${submission.lng}` : "—";
+
+      card.innerHTML = `
+        <div class="review-card-header">
+          <h2 class="review-card-name">${submission.name || "Untitled spot"}</h2>
+          <span class="review-card-date">${formatDate(submission.createdAt)}</span>
+        </div>
+        ${photoMarkup}
+        ${submissionPhotosMarkup}
+        <div class="review-details-grid">
+          ${createDetailCard("City", cityLabels[submission.city] || formatLabel(submission.city))}
+          ${createDetailCard("Type", formatType(submission.type))}
+          ${createDetailCard("Address", submission.address)}
+          ${createDetailCard("Coordinates", coordinatesLabel)}
+          ${createDetailCard("Neighborhood", submission.neighborhood)}
+          ${createDetailCard("Hours", submission.hours)}
+          ${createDetailCard("Outlets", formatLabel(submission.outlets))}
+          ${createDetailCard("Food", formatLabel(submission.food))}
+          ${createDetailCard("Seating", seatingLabel)}
+          ${createDetailCard("Vibe", vibeLabel)}
+          ${createDetailCard("Wifi network", submission.wifiNetwork)}
+          ${createDetailCard("Wifi speed", formatLabel(submission.wifiSpeed))}
+          ${createDetailCard("Noise level", formatLabel(submission.noiseLevel))}
+          ${createDetailCard("Cost", formatLabel(submission.costToSit))}
+          ${createDetailCard("Bathroom", bathroomLabel)}
+        </div>
+        ${notesMarkup}
+        <p class="review-submitter">Submitted by ${submission.submitterEmail || submission.submitterName || "anonymous"}</p>
+        <div class="review-actions">
+          <button class="review-btn-approve" type="button">Approve</button>
+          <button class="review-btn-reject" type="button">Reject</button>
+          <button class="review-btn-edit" type="button">Edit and approve</button>
+        </div>
+      `;
+
+      card.querySelector(".review-btn-approve").addEventListener("click", async () => {
+        try {
+          await approveSubmission(submission, card);
+        } catch (error) {
+          console.error("Failed to approve submission", error);
+        }
+      });
+
+      card.querySelector(".review-btn-reject").addEventListener("click", async () => {
+        try {
+          await rejectSubmission(submission, card);
+        } catch (error) {
+          console.error("Failed to reject submission", error);
+        }
+      });
+
+      card.querySelector(".review-btn-edit").addEventListener("click", async () => {
+        try {
+          await approveSubmission(submission, card);
+        } catch (error) {
+          console.error("Failed to approve submission", error);
+        }
+      });
+
+      return card;
+    }
+
+    function sortSubmissions(documents) {
+      return documents
+        .map((documentSnapshot) => ({
+          id: documentSnapshot.id,
+          ...documentSnapshot.data()
+        }))
+        .sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? 0;
+          const bTime = b.createdAt?.toMillis?.() ?? 0;
+          return aTime - bTime;
+        });
+    }
+
+    onSnapshot(
+      pendingQuery,
+      (snapshot) => {
+        const submissions = sortSubmissions(snapshot.docs);
+
+        if (!isInitialQueueLoad) {
+          submissions.forEach((submission) => {
+            if (!knownSubmissionIds.has(submission.id)) {
+              showToast(`New submission: ${submission.name || "Untitled spot"}`);
+            }
+          });
+        }
+
+        knownSubmissionIds = new Set(submissions.map((submission) => submission.id));
+        isInitialQueueLoad = false;
+        renderQueue(submissions);
+      },
+      (error) => {
+        console.error("Failed to load review queue", error);
+        queueList.innerHTML = '<p class="profile-empty">Unable to load submissions.</p>';
+      }
+    );
+  </script>
+</body>
+</html>

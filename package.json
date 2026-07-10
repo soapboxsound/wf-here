@@ -1,0 +1,11 @@
+{
+  "name": "wf-here",
+  "private": true,
+  "description": "WF-Here map-based workspace finder",
+  "scripts": {
+    "build": "node scripts/generate-config.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}

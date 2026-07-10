@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wf—here · find your workspace</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <style>
+    .hero-map-section {
+      position: relative;
+      width: 100%;
+      min-height: 580px;
+      overflow: hidden;
+    }
+
+    .hero-map-section .homepage-map-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hero-map-fade {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        rgba(248, 248, 246, 0.88) 0%,
+        rgba(248, 248, 246, 0.62) 30%,
+        rgba(248, 248, 246, 0.32) 52%,
+        rgba(248, 248, 246, 0.1) 72%,
+        rgba(248, 248, 246, 0) 90%
+      );
+    }
+
+    .hero-map-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 4rem 2rem 3rem;
+      text-align: center;
+    }
+
+    .how-section {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .hero-map-section {
+        min-height: 520px;
+      }
+
+      .hero {
+        padding: 2.5rem 1.5rem 2rem;
+      }
+    }
+  </style>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/new-york">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item active" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+  <section class="hero-map-section">
+    <div class="homepage-map-canvas" id="homepage-map"></div>
+    <div class="hero-map-fade"></div>
+    <div class="hero-map-content">
+      <section class="hero">
+        <p class="eyebrow">New York · Los Angeles</p>
+        <h1 class="hero-title">
+          <span class="hero-title-light">Your office is</span>
+          <span class="hero-title-medium">out there.</span>
+        </h1>
+        <p class="hero-copy">Find cafés, libraries, lobbies, and hidden spots with great wifi, good food, and the right vibe.</p>
+        <div class="city-picker">
+          <button class="city-btn" data-city="new-york" type="button">New York</button>
+          <div class="city-divider"></div>
+          <button class="city-btn" data-city="los-angeles" type="button">Los Angeles</button>
+          <button class="city-go" id="city-go" type="button">
+            <svg width="10" height="15" viewBox="0 0 14 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.134 3.134 0 7 0C10.866 0 14 3.134 14 7C14 8.486 13.519 9.859 12.702 10.976L7 22L1.298 10.976C0.481 9.859 0 8.486 0 7ZM7 10C8.657 10 10 8.657 10 7C10 5.343 8.657 4 7 4C5.343 4 4 5.343 4 7C4 8.657 5.343 10 7 10Z" fill="white"/></svg>
+            <span>explore</span>
+          </button>
+        </div>
+        <p class="hero-note">NYC locations added every day. LA coming soon.</p>
+        <button id="seedBtn" type="button" style="display: none;">Seed Database</button>
+      </section>
+    </div>
+  </section>
+  <section class="how-section">
+    <p class="eyebrow" style="text-align: center;">how it works</p>
+    <h2 class="section-title">Find your spot in three steps.</h2>
+    <div class="steps-grid">
+      <div class="step">
+        <p class="step-num">01</p>
+        <p class="step-title">Pick your city</p>
+        <p class="step-desc">New York or LA to start. Every spot hand-curated - no junk, no spam listings.</p>
+      </div>
+      <div class="step">
+        <p class="step-num">02</p>
+        <p class="step-title">Filter your needs</p>
+        <p class="step-desc">Wifi speed, noise level, food, power outlets, hours. Set it and find the right fit.</p>
+      </div>
+      <div class="step">
+        <p class="step-num">03</p>
+        <p class="step-title">Get to work</p>
+        <p class="step-desc">Check the vibe, get directions. Then go settle in.</p>
+      </div>
+    </div>
+  </section>
+  <div class="cta-band">
+    <div>
+      <p class="cta-title">Know a spot worth sharing?</p>
+      <p class="cta-copy">Submit it. If it passes the vibe check, it goes on the map.</p>
+    </div>
+    <a class="cta-link" href="/submit">submit a spot ↗</a>
+  </div>
+  <footer class="footer">
+    <img class="footer-logo" src="/assets/logo-primary.svg" alt="wf—here" height="20">
+    <div class="footer-links">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a href="/">about</a>
+    </div>
+  </footer>
+  <script>
+    const homepageExploreUrl = "/explore/new-york";
+    const cityButtons = document.querySelectorAll(".city-btn");
+    const cityGoButton = document.getElementById("city-go");
+
+    cityButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        window.location.href = homepageExploreUrl;
+      });
+    });
+
+    cityGoButton.addEventListener("click", () => {
+      window.location.href = homepageExploreUrl;
+    });
+  </script>
+  <script type="module">
+    import { mapboxToken } from "/js/config.js";
+
+    if (window.mapboxgl) {
+      mapboxgl.accessToken = mapboxToken;
+
+      const map = new mapboxgl.Map({
+        container: "homepage-map",
+        style: "mapbox://styles/mapbox/light-v11",
+        center: [-73.9857, 40.7484],
+        zoom: 12.5,
+        interactive: false
+      });
+
+      map.on("load", () => {
+        map.resize();
+      });
+    }
+  </script>
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+</body>
+</html>

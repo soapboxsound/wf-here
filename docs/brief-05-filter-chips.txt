@@ -1,0 +1,85 @@
+CONTEXT LINE — paste this first, then paste the brief below it.
+
+We are building WF-Here, a map-based workspace finder. The design system is set up in /css/tokens.css. Do not change any existing files unless I explicitly ask. Always reference tokens.css values rather than hardcoding colors, fonts, or spacing.
+
+----------------------------------------------------------------
+
+BRIEF 5 — FILTER CHIPS COMPONENT
+
+Build the filter chip component used on the explore page and submit form. All CSS goes in /css/components.css. JS goes in /js/components.js which already exists — add to it, do not replace it.
+
+CHIP STYLES
+
+Default state: background var(--color-surface-raised), border var(--border-hairline), border-radius var(--radius-full), padding 6px 14px, font-size var(--text-sm), color var(--color-ink-secondary), cursor pointer, font-family inherit, transition var(--transition-fast), white-space nowrap.
+
+Active or on state: background var(--color-ink), color var(--color-surface), border-color var(--color-ink).
+
+Hover state on default only: background var(--color-surface-sunken).
+
+Special active colors for wifi speed chips only:
+
+Slow chip active: background #E8281A, color white, border-color #E8281A.
+Decent chip active: background #BA7517, color white, border-color #BA7517.
+Fast chip active: background #27A56B, color white, border-color #27A56B.
+Blazing chip active: background #27A56B, color white, border-color #27A56B.
+
+CHIP GROUPS
+
+Create a CSS class "chip-group" for the wrapper: display flex, flex-wrap wrap, gap 6px.
+
+JAVASCRIPT FUNCTION
+
+In /js/components.js add a function called createChipGroup that accepts three arguments: groupName (string), options (array of objects each with a value and label property), multiSelect (boolean).
+
+The function returns a div element with class "chip-group" containing button elements for each option.
+
+Clicking a chip in a multi-select group toggles it on and off independently. Clicking a chip in a single-select group turns it on and turns all others in the group off. The "all" chip when present resets all others when clicked, and gets deselected when any other chip is activated.
+
+Each chip fires a custom event called chipToggle on the document with detail containing groupName, value, and active (boolean).
+
+CHIP GROUP DEFINITIONS
+
+Create these predefined groups as constants in /js/components.js so they can be imported and used on any page.
+
+Explore filters — multi-select with an all chip that resets others:
+all, fast wifi, quiet, food, outlets, open late, free, open now
+
+Noise level — single select:
+library quiet, moderate, lively, loud
+
+Cost to sit — single select:
+completely free, buy something, paid or membership
+
+Attributes — multi-select, used on submit form:
+fast wifi, outlets everywhere, quiet, good food, good coffee, open late, outdoor seating, natural light, free to sit, laptop friendly
+
+Wifi speed — single select with special active colors:
+slow, decent, fast, blazing
+
+DEMO SECTION
+
+Add a demo section to /index.html below the spot cards demo. White background, padding 2rem, heading "Filter Chips". Show all five chip groups with a small label above each one identifying which group it is.
+
+WHAT TO DELIVER
+
+Filter chip CSS in /css/components.css. createChipGroup function added to /js/components.js. All five chip group constants exported from /js/components.js. Demo section on index.html showing all groups working interactively. No console errors.
+
+----------------------------------------------------------------
+
+QA — open index.html. Click chips in each group. Explore filters should allow multiple selections except all which resets the others. Noise level and cost to sit should only allow one selection at a time. Wifi speed chips should show different active colors — red for slow, amber for decent, green for fast and blazing. Open the browser console and confirm chipToggle events are firing when you click. If anything is not working describe exactly what happens when you click and Cursor will fix it.
+
+----------------------------------------------------------------
+
+PHASE 1 COMPLETE
+
+After Brief 5 passes QA you have the full foundation built:
+
+Project structure and design tokens — done
+Nav component desktop and mobile — done
+Map pin component — done
+Spot card component — done
+Filter chips component — done
+
+Remove the demo sections from index.html before starting Phase 2. Tell Cursor: "Remove all demo sections from index.html. Leave only the nav component."
+
+Then start Brief 6 — the homepage.

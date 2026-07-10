@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>profile · wf—here</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/new-york">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item active" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+
+  <main class="profile-page">
+    <div class="profile-header">
+      <div class="profile-avatar" id="profileAvatar">?</div>
+      <div>
+        <p class="profile-name" id="profileName">Your profile</p>
+        <p class="profile-email" id="profileEmail"></p>
+      </div>
+    </div>
+
+    <section class="profile-section">
+      <h2 class="profile-section-title">Your saved spots</h2>
+      <div id="savedSpotsList">
+        <p class="profile-empty">No saved spots yet. Find somewhere and tap the heart.</p>
+      </div>
+    </section>
+
+    <section class="profile-section">
+      <h2 class="profile-section-title">Your submissions</h2>
+      <p class="profile-empty">
+        No submissions yet. Know a great spot?
+        <a href="/submit">Submit it.</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module">
+    import { onAuthChange } from "/js/auth.js";
+    import { getSavedSpots } from "/js/db.js";
+
+    const profileAvatar = document.getElementById("profileAvatar");
+    const profileName = document.getElementById("profileName");
+    const profileEmail = document.getElementById("profileEmail");
+    const savedSpotsList = document.getElementById("savedSpotsList");
+
+    function renderSavedSpots(savedSpots) {
+      if (!savedSpots.length) {
+        savedSpotsList.innerHTML =
+          '<p class="profile-empty">No saved spots yet. Find somewhere and tap the heart.</p>';
+        return;
+      }
+
+      savedSpotsList.innerHTML = "";
+
+      savedSpots.forEach((spot) => {
+        const item = document.createElement("div");
+        item.className = "saved-spot-item";
+        item.innerHTML = `
+          <span class="saved-spot-name">${spot.spotName}</span>
+          <a class="saved-spot-link" href="/place?slug=${encodeURIComponent(spot.spotSlug)}">View spot →</a>
+        `;
+        savedSpotsList.appendChild(item);
+      });
+    }
+
+    async function loadProfile(user) {
+      const displayName = user.displayName || "Your profile";
+      const initial = (displayName.charAt(0) || user.email?.charAt(0) || "?").toUpperCase();
+
+      profileAvatar.textContent = initial;
+      profileName.textContent = displayName;
+      profileEmail.textContent = user.email || "";
+
+      const savedSpots = await getSavedSpots(user.uid);
+      renderSavedSpots(savedSpots);
+    }
+
+    onAuthChange((user) => {
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      loadProfile(user);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>submit a spot · wf—here</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    .submit-body {
+      max-width: 580px;
+      margin: 0 auto;
+      padding: 2.5rem 2rem 4rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav submit-nav">
+    <a class="place-back-link" href="/" id="formBackLink"><i class="ti ti-arrow-left"></i><span>back</span></a>
+    <a class="submit-nav-logo" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <div class="nav-links">
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit active" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+
+  <div class="submit-body" id="submitBody" data-step="1">
+    <p class="eyebrow">submit a spot</p>
+    <h1 class="submit-title">Know somewhere<br>worth working from?</h1>
+    <p class="submit-subtitle">Tell us about it. If it passes the vibe check it goes on the map — and you get the credit.</p>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="prog-step" data-prog="1">
+        <div class="prog-circle prog-active">1</div>
+        <span class="prog-label prog-label-active">the place</span>
+      </div>
+      <div class="prog-line"></div>
+      <div class="prog-step" data-prog="2">
+        <div class="prog-circle prog-todo">2</div>
+        <span class="prog-label prog-label-todo">the details</span>
+      </div>
+      <div class="prog-line"></div>
+      <div class="prog-step" data-prog="3">
+        <div class="prog-circle prog-todo">3</div>
+        <span class="prog-label prog-label-todo">wifi + access</span>
+      </div>
+      <div class="prog-line"></div>
+      <div class="prog-step" data-prog="4">
+        <div class="prog-circle prog-todo">4</div>
+        <span class="prog-label prog-label-todo">photos</span>
+      </div>
+    </div>
+
+    <button class="mobile-form-back" id="mobileFormBack" type="button"><i class="ti ti-arrow-left"></i><span>back</span></button>
+
+    <form id="submitForm">
+      <section class="form-step is-active" data-step="1">
+        <div class="form-group" id="placeGoogleFields">
+          <label class="form-label" for="placeSearchInput">Find the place</label>
+          <span class="form-hint">Search by name or paste a Google Maps link — we will fill in the details.</span>
+          <div class="place-search-wrap">
+            <div class="place-search-row">
+              <input class="form-input" id="placeSearchInput" type="text" placeholder="e.g. Ludlow Coffee Supply, New York">
+              <button class="place-search-btn" id="placeSearchBtn" type="button">Look up</button>
+            </div>
+            <div class="place-autocomplete-list" id="placeAutocompleteList"></div>
+          </div>
+          <div class="place-preview" id="placePreview">
+            <div class="place-preview-photo" id="placePhoto"></div>
+            <div class="place-preview-body">
+              <span class="place-preview-name" id="previewPlaceName"></span>
+              <span class="place-preview-address" id="previewPlaceAddress"></span>
+              <span class="place-preview-hours" id="previewPlaceHours"></span>
+              <span class="auto-badge">fetched from Google</span>
+            </div>
+          </div>
+          <button class="place-search-reset" id="placeSearchReset" type="button" hidden>Wrong place? Search again</button>
+          <button class="place-manual-toggle" id="placeManualToggle" type="button">Can't find it? Enter manually</button>
+        </div>
+
+        <div class="place-manual-fields" id="placeManualFields" hidden>
+          <div class="form-field">
+            <label class="form-label" for="manualPlaceName">Name of the place</label>
+            <input class="form-input" id="manualPlaceName" type="text" placeholder="e.g. Ludlow Coffee Supply">
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="manualPlaceAddress">Address</label>
+            <input class="form-input" id="manualPlaceAddress" type="text" placeholder="e.g. 154 Ludlow St, New York, NY">
+          </div>
+          <button class="place-manual-toggle" id="placeGoogleToggle" type="button">Search with Google instead</button>
+        </div>
+
+        <div class="form-two-col">
+          <div class="form-field">
+            <label class="form-label" for="placeCity">City</label>
+            <select class="form-select" id="placeCity">
+              <option>New York</option>
+              <option>Los Angeles</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="placeType">Type of place</label>
+            <select class="form-select" id="placeType">
+              <option>Café</option>
+              <option>Library</option>
+              <option>Hotel lobby</option>
+              <option>Co-working</option>
+              <option>Park or outdoor</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <hr class="form-divider">
+
+        <div class="form-group">
+          <label class="form-label">What makes it good for working?</label>
+          <span class="form-hint">Pick all that apply</span>
+          <div id="attributesChips"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Noise level</label>
+          <div id="noiseChips"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cost to sit</label>
+          <div id="costChips"></div>
+        </div>
+
+        <hr class="form-divider">
+      </section>
+
+      <section class="form-step" data-step="2">
+        <div class="form-field">
+          <label class="form-label" for="placeNeighborhood">Neighborhood</label>
+          <span class="form-hint">Where in the city is this spot?</span>
+          <input class="form-input" id="placeNeighborhood" type="text" placeholder="e.g. Lower East Side">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="placeHours">Hours</label>
+          <span class="form-hint">When can someone realistically work from here?</span>
+          <input class="form-input" id="placeHours" type="text" placeholder="e.g. 7am – 6pm daily, or open 24hrs">
+        </div>
+
+        <hr class="form-divider">
+
+        <div class="form-group">
+          <label class="form-label">Power outlets</label>
+          <div id="outletsChips"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Food &amp; drinks</label>
+          <div id="foodChips"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Seating</label>
+          <span class="form-hint">Pick all that apply</span>
+          <div id="seatingChips"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">The vibe</label>
+          <span class="form-hint">What would you tell a friend about this place?</span>
+          <div id="vibeChips"></div>
+        </div>
+
+        <hr class="form-divider">
+      </section>
+
+      <section class="form-step" data-step="3">
+        <p class="form-label">Wifi</p>
+        <div class="wifi-input-card">
+          <div class="wifi-input-row">
+            <span class="wifi-input-label">Network name</span>
+            <input class="wifi-input-field" id="wifiNetwork" type="text" placeholder="e.g. LudlowCoffee_Guest">
+          </div>
+          <div class="wifi-input-row">
+            <span class="wifi-input-label">Password</span>
+            <input class="wifi-input-field" id="wifiPassword" type="text" placeholder="Leave blank if open network">
+          </div>
+          <div class="wifi-input-row">
+            <span class="wifi-input-label">Speed</span>
+            <div class="wifi-speed-opts" id="wifiSpeedChips"></div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <p class="form-label">Bathroom</p>
+          <div class="bathroom-input-card">
+            <div class="bathroom-input-row">
+              <span class="wifi-input-label">Available?</span>
+              <div class="bathroom-yes-no">
+                <button class="chip is-active" type="button" data-bathroom="yes">yes</button>
+                <button class="chip" type="button" data-bathroom="no">no</button>
+              </div>
+            </div>
+            <div class="bathroom-input-row">
+              <span class="wifi-input-label">Code or key?</span>
+              <input class="wifi-input-field" id="bathroomCode" type="text" placeholder="e.g. 4281 or ask at counter">
+            </div>
+            <div class="bathroom-input-row">
+              <span class="wifi-input-label">Notes</span>
+              <input class="wifi-input-field" id="bathroomNotes" type="text" placeholder="e.g. single stall, very clean">
+            </div>
+          </div>
+        </div>
+
+        <hr class="form-divider">
+      </section>
+
+      <section class="form-step" data-step="4">
+        <input type="file" id="photoFileInput" accept="image/jpeg,image/png" multiple hidden>
+        <div class="photo-upload" id="photoUploadZone" tabindex="0" role="button" aria-label="Add photos">
+          <i class="ti ti-photo-plus"></i>
+          <p class="photo-upload-title">Tap to add photos</p>
+          <p class="photo-upload-note" id="photoUploadNote">JPG or PNG · up to 5 photos · 10MB each</p>
+        </div>
+        <p class="photo-upload-error" id="photoUploadError" hidden></p>
+        <div class="photo-preview-grid" id="photoPreviewGrid"></div>
+
+        <div class="form-field" style="margin-top: 1.25rem;">
+          <label class="form-label" for="extraNotes">Anything else worth knowing?</label>
+          <span class="form-hint">Optional — but the good stuff lives here.</span>
+          <textarea class="form-textarea" id="extraNotes" placeholder="e.g. Gets crowded after 10am. Best seats are at the back by the window. They don't mind if you stay all day."></textarea>
+        </div>
+      </section>
+
+      <button class="submit-next-btn" id="submitNextBtn" type="button">next — the details ↗</button>
+      <button class="submit-btn" id="submitBtn" type="submit">
+        <svg width="12" height="17" viewBox="0 0 14 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.134 3.134 0 7 0C10.866 0 14 3.134 14 7C14 8.486 13.519 9.859 12.702 10.976L7 22L1.298 10.976C0.481 9.859 0 8.486 0 7ZM7 10C8.657 10 10 8.657 10 7C10 5.343 8.657 4 7 4C5.343 4 4 5.343 4 7C4 8.657 5.343 10 7 10Z" fill="white"/></svg>
+        <span>submit this spot</span>
+      </button>
+      <p class="submit-error" id="submitError" style="display: none;">Something went wrong. Please try again.</p>
+      <p class="submit-note">Every submission is reviewed before it goes live. We'll let you know when yours is on the map.</p>
+    </form>
+  </div>
+
+  <div class="submit-confirmation" id="submitConfirmation" hidden>
+    <svg width="48" height="48" viewBox="0 0 14 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.134 3.134 0 7 0C10.866 0 14 3.134 14 7C14 8.486 13.519 9.859 12.702 10.976L7 22L1.298 10.976C0.481 9.859 0 8.486 0 7ZM7 10C8.657 10 10 8.657 10 7C10 5.343 8.657 4 7 4C5.343 4 4 5.343 4 7C4 8.657 5.343 10 7 10Z" fill="#E8281A"/></svg>
+    <h2>Spot submitted.</h2>
+    <p>We'll review it and let you know when it goes live.</p>
+    <a class="submit-confirmation-link" href="/explore/new-york">Back to the map</a>
+  </div>
+
+  <script type="module">
+    import {
+      ATTRIBUTE_OPTIONS,
+      COST_TO_SIT_OPTIONS,
+      FOOD_OPTIONS,
+      NOISE_LEVEL_OPTIONS,
+      OUTLET_OPTIONS,
+      SEATING_OPTIONS,
+      VIBE_TAG_OPTIONS,
+      WIFI_SPEED_OPTIONS,
+      createChipGroup
+    } from "/js/components.js";
+    import {
+      autocomplete,
+      debounce,
+      generateSessionToken,
+      getPhotoUrl,
+      getPlaceDetails
+    } from "/js/places.js";
+    import { submitSpot, updateDoc } from "/js/db.js";
+    import { uploadSubmissionPhotos, validatePhotoFile } from "/js/storage.js";
+    import { onAuthChange } from "/js/auth.js";
+    import { auth } from "/js/firebase.js";
+
+    document.getElementById("attributesChips").appendChild(
+      createChipGroup("submit attributes", ATTRIBUTE_OPTIONS, true)
+    );
+    document.getElementById("noiseChips").appendChild(
+      createChipGroup("submit noise", NOISE_LEVEL_OPTIONS, false)
+    );
+    document.getElementById("costChips").appendChild(
+      createChipGroup("submit cost", COST_TO_SIT_OPTIONS, false)
+    );
+    document.getElementById("wifiSpeedChips").appendChild(
+      createChipGroup("wifi speed", WIFI_SPEED_OPTIONS, false)
+    );
+    document.getElementById("outletsChips").appendChild(
+      createChipGroup("submit outlets", OUTLET_OPTIONS, false)
+    );
+    document.getElementById("foodChips").appendChild(
+      createChipGroup("submit food", FOOD_OPTIONS, false)
+    );
+    document.getElementById("seatingChips").appendChild(
+      createChipGroup("submit seating", SEATING_OPTIONS, true)
+    );
+    document.getElementById("vibeChips").appendChild(
+      createChipGroup("submit vibe", VIBE_TAG_OPTIONS, true)
+    );
+
+    const bathroomButtons = document.querySelectorAll("[data-bathroom]");
+    bathroomButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        bathroomButtons.forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+      });
+    });
+
+    const submitBody = document.getElementById("submitBody");
+    const formSteps = document.querySelectorAll(".form-step");
+    const progSteps = document.querySelectorAll(".prog-step");
+    const nextBtn = document.getElementById("submitNextBtn");
+    const mobileFormBack = document.getElementById("mobileFormBack");
+    const formBackLink = document.getElementById("formBackLink");
+    const submitForm = document.getElementById("submitForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const submitError = document.getElementById("submitError");
+    const submitConfirmation = document.getElementById("submitConfirmation");
+    const attributesChips = document.getElementById("attributesChips");
+    const noiseChips = document.getElementById("noiseChips");
+    const costChips = document.getElementById("costChips");
+    const wifiSpeedChips = document.getElementById("wifiSpeedChips");
+    const outletsChips = document.getElementById("outletsChips");
+    const foodChips = document.getElementById("foodChips");
+    const seatingChips = document.getElementById("seatingChips");
+    const vibeChips = document.getElementById("vibeChips");
+    const placeSearchInput = document.getElementById("placeSearchInput");
+    const placeSearchBtn = document.getElementById("placeSearchBtn");
+    const placeAutocompleteList = document.getElementById("placeAutocompleteList");
+    const placePreview = document.getElementById("placePreview");
+    const placePhoto = document.getElementById("placePhoto");
+    const previewPlaceName = document.getElementById("previewPlaceName");
+    const previewPlaceAddress = document.getElementById("previewPlaceAddress");
+    const previewPlaceHours = document.getElementById("previewPlaceHours");
+    const placeSearchReset = document.getElementById("placeSearchReset");
+    const placeHoursInput = document.getElementById("placeHours");
+    const placeGoogleFields = document.getElementById("placeGoogleFields");
+    const placeManualFields = document.getElementById("placeManualFields");
+    const placeManualToggle = document.getElementById("placeManualToggle");
+    const placeGoogleToggle = document.getElementById("placeGoogleToggle");
+    const manualPlaceName = document.getElementById("manualPlaceName");
+    const manualPlaceAddress = document.getElementById("manualPlaceAddress");
+    const photoFileInput = document.getElementById("photoFileInput");
+    const photoUploadZone = document.getElementById("photoUploadZone");
+    const photoUploadNote = document.getElementById("photoUploadNote");
+    const photoUploadError = document.getElementById("photoUploadError");
+    const photoPreviewGrid = document.getElementById("photoPreviewGrid");
+
+    const MAX_PHOTOS = 5;
+    const selectedPhotos = [];
+
+    let sessionToken = generateSessionToken();
+    let selectedPlace = null;
+    let isManualEntry = false;
+
+    const googleTypeMap = {
+      cafe: "Café",
+      coffee_shop: "Café",
+      bakery: "Café",
+      library: "Library",
+      lodging: "Hotel lobby",
+      hotel: "Hotel lobby",
+      park: "Park or outdoor",
+      coworking_space: "Co-working",
+      bookstore: "Other",
+      restaurant: "Other",
+      bar: "Other"
+    };
+
+    function hideAutocomplete() {
+      placeAutocompleteList.classList.remove("is-visible");
+      placeAutocompleteList.innerHTML = "";
+    }
+
+    function clearPlaceSelection() {
+      selectedPlace = null;
+      placePreview.classList.remove("is-visible");
+      placeSearchReset.hidden = true;
+      placePhoto.style.backgroundImage = "";
+      previewPlaceName.textContent = "";
+      previewPlaceAddress.textContent = "";
+      previewPlaceHours.textContent = "";
+      placeSearchInput.value = "";
+      placeSearchInput.focus();
+    }
+
+    function showManualEntry() {
+      isManualEntry = true;
+      hideAutocomplete();
+      clearPlaceSelection();
+      manualPlaceName.value = placeSearchInput.value.trim();
+      manualPlaceAddress.value = "";
+      placeGoogleFields.hidden = true;
+      placeManualFields.hidden = false;
+      manualPlaceName.focus();
+    }
+
+    function showGoogleSearch() {
+      isManualEntry = false;
+      placeManualFields.hidden = true;
+      placeGoogleFields.hidden = false;
+      if (manualPlaceName.value.trim()) {
+        placeSearchInput.value = manualPlaceName.value.trim();
+      }
+      placeSearchInput.focus();
+    }
+
+    function setPlaceTypeFromGoogle(placeType = "") {
+      const select = document.getElementById("placeType");
+      const label = googleTypeMap[placeType];
+
+      if (!label) {
+        return;
+      }
+
+      [...select.options].forEach((option) => {
+        if (option.textContent === label) {
+          select.value = option.textContent;
+        }
+      });
+    }
+
+    function inferCityFromAddress(address = "") {
+      if (address.includes("Los Angeles") || address.includes(", CA")) {
+        return "Los Angeles";
+      }
+
+      return "New York";
+    }
+
+    async function selectPlace(placeId) {
+      hideAutocomplete();
+      isManualEntry = false;
+      placeManualFields.hidden = true;
+      placeGoogleFields.hidden = false;
+
+      try {
+        const details = await getPlaceDetails(placeId, sessionToken);
+        sessionToken = generateSessionToken();
+        selectedPlace = details;
+
+        previewPlaceName.textContent = details.name;
+        previewPlaceAddress.textContent = details.address;
+
+        if (details.isOpenNow === true) {
+          previewPlaceHours.textContent = "Open now";
+          previewPlaceHours.classList.add("is-open");
+        } else if (details.isOpenNow === false) {
+          previewPlaceHours.textContent = "Closed now";
+          previewPlaceHours.classList.remove("is-open");
+        } else if (details.hours) {
+          previewPlaceHours.textContent = details.hours.split("\n")[0];
+          previewPlaceHours.classList.remove("is-open");
+        } else {
+          previewPlaceHours.textContent = "";
+          previewPlaceHours.classList.remove("is-open");
+        }
+
+        if (details.photoReference) {
+          placePhoto.style.backgroundImage = `url("${getPhotoUrl(details.photoReference)}")`;
+        } else {
+          placePhoto.style.backgroundImage = "";
+        }
+
+        if (details.hours && !placeHoursInput.value.trim()) {
+          placeHoursInput.value = details.hours.replace(/\n/g, " · ");
+        }
+
+        document.getElementById("placeCity").value = inferCityFromAddress(details.address);
+        setPlaceTypeFromGoogle(details.placeType);
+        placePreview.classList.add("is-visible");
+        placeSearchReset.hidden = false;
+      } catch (error) {
+        console.error("Failed to load place details", error);
+      }
+    }
+
+    function renderAutocomplete(predictions = []) {
+      placeAutocompleteList.innerHTML = "";
+
+      if (!predictions.length) {
+        hideAutocomplete();
+        return;
+      }
+
+      predictions.forEach((prediction) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "place-autocomplete-item";
+        item.textContent = prediction.description;
+        item.addEventListener("click", () => {
+          placeSearchInput.value = prediction.description;
+          selectPlace(prediction.place_id);
+        });
+        placeAutocompleteList.appendChild(item);
+      });
+
+      placeAutocompleteList.classList.add("is-visible");
+    }
+
+    async function runAutocompleteSearch(value) {
+      const query = value.trim();
+
+      if (query.length < 3) {
+        hideAutocomplete();
+        return;
+      }
+
+      const predictions = await autocomplete(query, sessionToken);
+      renderAutocomplete(predictions);
+    }
+
+    async function handleLookupClick() {
+      const value = placeSearchInput.value.trim();
+
+      if (!value) {
+        return;
+      }
+
+      if (value.includes("maps.app.goo.gl") || value.includes("maps.google.com")) {
+        await runAutocompleteSearch(value);
+        return;
+      }
+
+      await runAutocompleteSearch(value);
+    }
+
+    const debouncedAutocomplete = debounce(() => {
+      runAutocompleteSearch(placeSearchInput.value);
+    }, 300);
+
+    placeSearchInput.addEventListener("input", debouncedAutocomplete);
+    placeSearchBtn.addEventListener("click", handleLookupClick);
+    placeSearchReset.addEventListener("click", clearPlaceSelection);
+    placeManualToggle.addEventListener("click", showManualEntry);
+    placeGoogleToggle.addEventListener("click", showGoogleSearch);
+
+    manualPlaceAddress.addEventListener("blur", () => {
+      if (!manualPlaceAddress.value.trim()) {
+        return;
+      }
+
+      document.getElementById("placeCity").value = inferCityFromAddress(manualPlaceAddress.value);
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".place-search-wrap")) {
+        hideAutocomplete();
+      }
+    });
+
+    const prefillName = new URLSearchParams(window.location.search).get("placeName");
+    if (prefillName) {
+      placeSearchInput.value = prefillName;
+      runAutocompleteSearch(prefillName);
+    }
+
+    function hidePhotoError() {
+      photoUploadError.hidden = true;
+      photoUploadError.textContent = "";
+    }
+
+    function showPhotoError(message) {
+      photoUploadError.textContent = message;
+      photoUploadError.hidden = false;
+    }
+
+    function updatePhotoNote() {
+      if (!selectedPhotos.length) {
+        photoUploadNote.textContent = "JPG or PNG · up to 5 photos · 10MB each";
+        return;
+      }
+
+      photoUploadNote.textContent = `${selectedPhotos.length} of ${MAX_PHOTOS} photos selected`;
+    }
+
+    function renderPhotoPreviews() {
+      photoPreviewGrid.innerHTML = "";
+
+      selectedPhotos.forEach((photo, index) => {
+        const item = document.createElement("div");
+        item.className = "photo-preview-item";
+
+        const image = document.createElement("img");
+        image.src = photo.previewUrl;
+        image.alt = photo.file.name;
+
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "photo-preview-remove";
+        removeButton.setAttribute("aria-label", "Remove photo");
+        removeButton.innerHTML = '<i class="ti ti-x"></i>';
+        removeButton.addEventListener("click", () => {
+          URL.revokeObjectURL(photo.previewUrl);
+          selectedPhotos.splice(index, 1);
+          renderPhotoPreviews();
+          updatePhotoNote();
+        });
+
+        item.append(image, removeButton);
+        photoPreviewGrid.appendChild(item);
+      });
+
+      updatePhotoNote();
+    }
+
+    function addPhotoFiles(fileList) {
+      hidePhotoError();
+
+      const files = Array.from(fileList || []);
+      if (!files.length) {
+        return;
+      }
+
+      const remainingSlots = MAX_PHOTOS - selectedPhotos.length;
+
+      if (remainingSlots <= 0) {
+        showPhotoError(`You can add up to ${MAX_PHOTOS} photos.`);
+        return;
+      }
+
+      const filesToAdd = files.slice(0, remainingSlots);
+
+      if (files.length > remainingSlots) {
+        showPhotoError(`Only ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"} can be added.`);
+      }
+
+      filesToAdd.forEach((file) => {
+        const error = validatePhotoFile(file);
+
+        if (error) {
+          showPhotoError(error);
+          return;
+        }
+
+        selectedPhotos.push({
+          file,
+          previewUrl: URL.createObjectURL(file)
+        });
+      });
+
+      renderPhotoPreviews();
+    }
+
+    function openPhotoPicker() {
+      if (selectedPhotos.length >= MAX_PHOTOS) {
+        showPhotoError(`You can add up to ${MAX_PHOTOS} photos.`);
+        return;
+      }
+
+      photoFileInput.click();
+    }
+
+    photoUploadZone.addEventListener("click", openPhotoPicker);
+    photoUploadZone.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openPhotoPicker();
+      }
+    });
+    photoFileInput.addEventListener("change", () => {
+      addPhotoFiles(photoFileInput.files);
+      photoFileInput.value = "";
+    });
+
+    const citySlugMap = {
+      "New York": "new-york",
+      "Los Angeles": "los-angeles"
+    };
+
+    const typeSlugMap = {
+      "Café": "cafe",
+      "Library": "library",
+      "Hotel lobby": "hotel-lobby",
+      "Co-working": "co-working",
+      "Park or outdoor": "park",
+      "Other": "other"
+    };
+
+    function getActiveChipValues(container) {
+      return [...container.querySelectorAll(".chip.is-active")].map((chip) => chip.dataset.value);
+    }
+
+    function getActiveChipValue(container) {
+      const activeChip = container.querySelector(".chip.is-active");
+      return activeChip ? activeChip.dataset.value : "";
+    }
+
+    function showSubmitError() {
+      submitError.style.display = "block";
+    }
+
+    function hideSubmitError() {
+      submitError.style.display = "none";
+    }
+
+    function showConfirmation() {
+      submitBody.hidden = true;
+      submitConfirmation.hidden = false;
+    }
+
+    async function handleSubmit(event) {
+      event.preventDefault();
+      hideSubmitError();
+
+      const submitLabel = submitBtn.querySelector("span");
+      const originalLabel = submitLabel.textContent;
+      submitBtn.disabled = true;
+      submitLabel.textContent = "Submitting...";
+
+      const bathroomYes = document.querySelector('[data-bathroom="yes"]');
+      const user = currentUser;
+
+      const spotData = {
+        name: isManualEntry
+          ? manualPlaceName.value.trim()
+          : selectedPlace?.name || placeSearchInput.value.trim(),
+        city: citySlugMap[document.getElementById("placeCity").value] || "new-york",
+        type: typeSlugMap[document.getElementById("placeType").value] || "other",
+        address: isManualEntry
+          ? manualPlaceAddress.value.trim()
+          : selectedPlace?.address || "",
+        lat: isManualEntry ? 0 : selectedPlace?.lat || 0,
+        lng: isManualEntry ? 0 : selectedPlace?.lng || 0,
+        googlePlaceId: isManualEntry ? "" : selectedPlace?.placeId || "",
+        googlePhotoRef: isManualEntry ? "" : selectedPlace?.photoReference || "",
+        phone: isManualEntry ? "" : selectedPlace?.phone || "",
+        website: isManualEntry ? "" : selectedPlace?.website || "",
+        neighborhood: document.getElementById("placeNeighborhood").value.trim(),
+        hours: document.getElementById("placeHours").value.trim() || selectedPlace?.hours?.replace(/\n/g, " · ") || "",
+        attributes: getActiveChipValues(attributesChips),
+        noiseLevel: getActiveChipValue(noiseChips),
+        costToSit: getActiveChipValue(costChips),
+        outlets: getActiveChipValue(outletsChips),
+        food: getActiveChipValue(foodChips),
+        seating: getActiveChipValues(seatingChips),
+        vibeTags: getActiveChipValues(vibeChips),
+        wifiNetwork: document.getElementById("wifiNetwork").value.trim(),
+        wifiPassword: document.getElementById("wifiPassword").value.trim(),
+        wifiSpeed: getActiveChipValue(wifiSpeedChips),
+        bathroomAvailable: bathroomYes.classList.contains("is-active"),
+        bathroomCode: document.getElementById("bathroomCode").value.trim(),
+        bathroomNotes: document.getElementById("bathroomNotes").value.trim(),
+        notes: document.getElementById("extraNotes").value.trim(),
+        submitterEmail: user?.email || "",
+        submitterName: user?.displayName || "",
+        photos: [],
+        status: "pending",
+        createdAt: new Date()
+      };
+
+      try {
+        const docRef = await submitSpot(spotData);
+
+        if (selectedPhotos.length) {
+          submitLabel.textContent = "Uploading photos...";
+          const photoUrls = await uploadSubmissionPhotos(
+            docRef.id,
+            selectedPhotos.map((photo) => photo.file)
+          );
+          await updateDoc(docRef, { photos: photoUrls });
+        }
+
+        showConfirmation();
+      } catch (error) {
+        console.error("Failed to submit spot", error);
+        showSubmitError();
+        submitBtn.disabled = false;
+        submitLabel.textContent = originalLabel;
+      }
+    }
+
+    let currentUser = auth.currentUser;
+
+    onAuthChange((user) => {
+      currentUser = user;
+    });
+
+    const nextLabels = {
+      1: "next — the details ↗",
+      2: "next — wifi + access ↗",
+      3: "next — photos ↗"
+    };
+
+    let currentStep = 1;
+
+    function isMobile() {
+      return window.matchMedia("(max-width: 768px)").matches;
+    }
+
+    function updateProgress(step) {
+      progSteps.forEach((progStep) => {
+        const stepNum = Number(progStep.dataset.prog);
+        const circle = progStep.querySelector(".prog-circle");
+        const label = progStep.querySelector(".prog-label");
+
+        circle.classList.remove("prog-active", "prog-done", "prog-todo");
+        label.classList.remove("prog-label-active", "prog-label-todo");
+
+        if (stepNum < step) {
+          circle.classList.add("prog-done");
+          label.classList.add("prog-label-todo");
+        } else if (stepNum === step) {
+          circle.classList.add("prog-active");
+          label.classList.add("prog-label-active");
+        } else {
+          circle.classList.add("prog-todo");
+          label.classList.add("prog-label-todo");
+        }
+      });
+    }
+
+    function showStep(step) {
+      currentStep = step;
+      submitBody.dataset.step = String(step);
+      formSteps.forEach((section) => {
+        section.classList.toggle("is-active", Number(section.dataset.step) === step);
+      });
+      updateProgress(step);
+
+      if (isMobile()) {
+        nextBtn.textContent = nextLabels[step] || nextLabels[3];
+        mobileFormBack.classList.toggle("is-visible", step > 1);
+        formBackLink.style.visibility = step > 1 ? "hidden" : "visible";
+      }
+    }
+
+    nextBtn.addEventListener("click", () => {
+      if (!isMobile() || currentStep >= 4) return;
+      showStep(currentStep + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    mobileFormBack.addEventListener("click", () => {
+      if (currentStep > 1) {
+        showStep(currentStep - 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+
+    submitForm.addEventListener("submit", handleSubmit);
+
+    function initSteps() {
+      if (isMobile()) {
+        showStep(1);
+      } else {
+        formSteps.forEach((section) => section.classList.add("is-active"));
+        submitBody.dataset.step = "1";
+        updateProgress(1);
+        mobileFormBack.classList.remove("is-visible");
+        formBackLink.style.visibility = "visible";
+      }
+    }
+
+    initSteps();
+    window.addEventListener("resize", () => {
+      if (!isMobile()) {
+        formSteps.forEach((section) => section.classList.add("is-active"));
+        mobileFormBack.classList.remove("is-visible");
+        formBackLink.style.visibility = "visible";
+      } else {
+        showStep(currentStep);
+      }
+    });
+  </script>
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+</body>
+</html>

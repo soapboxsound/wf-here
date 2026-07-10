@@ -1,0 +1,46 @@
+{
+  "buildCommand": "npm run build",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/explore/:city", "destination": "/explore/index.html" },
+    { "source": "/place/:slug", "destination": "/place/index.html" },
+    { "source": "/new-york", "destination": "/new-york/index.html" },
+    { "source": "/los-angeles", "destination": "/los-angeles/index.html" },
+    { "source": "/submit", "destination": "/submit/index.html" },
+    { "source": "/login", "destination": "/login/index.html" },
+    { "source": "/profile", "destination": "/profile/index.html" },
+    { "source": "/for-businesses", "destination": "/for-businesses/index.html" },
+    { "source": "/admin/queue", "destination": "/admin/queue/index.html" },
+    { "source": "/admin/listings", "destination": "/admin/listings/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/css/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/js/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}
