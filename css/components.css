@@ -316,15 +316,17 @@
 
 .spot-card-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 1px;
 }
 
 .spot-wifi {
   display: inline-flex;
   align-items: center;
   font-size: 11px;
+  line-height: 1.2;
 }
 
 .spot-wifi-dot {
@@ -334,11 +336,15 @@
   margin-right: 4px;
   border-radius: 50%;
   background: currentColor;
+  flex-shrink: 0;
 }
 
 .spot-hours {
+  width: 100%;
   color: var(--color-ink-muted);
   font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
 }
 
 .spot-cards-demo {

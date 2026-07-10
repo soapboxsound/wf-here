@@ -37,6 +37,20 @@ function formatOutlets(outlets = "") {
   return outlets === "plenty" ? "outlets" : outlets;
 }
 
+function formatHoursForCard(hours = "") {
+  if (!hours) {
+    return "";
+  }
+
+  const firstLine = hours.split("\n")[0].replace(/\s*·\s*/g, ", ").trim();
+
+  if (firstLine.length <= 42) {
+    return firstLine;
+  }
+
+  return `${firstLine.slice(0, 39).trim()}…`;
+}
+
 function deriveAttributes(spot) {
   if (Array.isArray(spot.attributes) && spot.attributes.length) {
     return spot.attributes;
@@ -122,6 +136,7 @@ export function createSpotCard(spot) {
   const attrsMarkup = attributes
     .map((attribute) => `<span class="spot-attr">${attribute}</span>`)
     .join("");
+  const hoursLabel = formatHoursForCard(spot.hours);
 
   card.innerHTML = `
     <div class="spot-card-name-row">
@@ -140,7 +155,7 @@ export function createSpotCard(spot) {
         <span class="spot-wifi-dot"></span>
         <span>${wifi.label}</span>
       </div>
-      <span class="spot-hours">${spot.hours}</span>
+      ${hoursLabel ? `<span class="spot-hours">${hoursLabel}</span>` : ""}
     </div>
   `;
 
