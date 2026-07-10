@@ -744,6 +744,8 @@
         lng: isManualEntry ? 0 : selectedPlace?.lng || 0,
         googlePlaceId: isManualEntry ? "" : selectedPlace?.placeId || "",
         googlePhotoRef: isManualEntry ? "" : selectedPlace?.photoReference || "",
+        googlePhotoRefs: isManualEntry ? [] : selectedPlace?.photoReferences || [],
+        googlePhotoAttribution: isManualEntry ? "" : selectedPlace?.photoAttribution || "",
         phone: isManualEntry ? "" : selectedPlace?.phone || "",
         website: isManualEntry ? "" : selectedPlace?.website || "",
         neighborhood: document.getElementById("placeNeighborhood").value.trim(),

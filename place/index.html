@@ -86,15 +86,16 @@
     <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
   </nav>
   <div class="place-hero">
-    <div class="place-hero-main"><i class="ti ti-photo"></i></div>
+    <div class="place-hero-main" id="placeHeroMain"><i class="ti ti-photo"></i></div>
     <div class="place-hero-grid">
-      <div class="place-hero-thumb"></div>
-      <div class="place-hero-thumb"></div>
-      <div class="place-hero-thumb"></div>
-      <div class="place-hero-thumb"></div>
-      <div class="place-photo-count">8 photos</div>
+      <div class="place-hero-thumb" id="placeHeroThumb1"></div>
+      <div class="place-hero-thumb" id="placeHeroThumb2"></div>
+      <div class="place-hero-thumb" id="placeHeroThumb3"></div>
+      <div class="place-hero-thumb" id="placeHeroThumb4"></div>
+      <div class="place-photo-count" id="placePhotoCount" hidden>0 photos</div>
     </div>
   </div>
+  <p class="place-photo-attribution" id="placePhotoAttribution" hidden></p>
   <div class="place-content">
     <main class="place-main">
       <div class="spot-header">
@@ -244,6 +245,11 @@
     import { onAuthChange } from "/js/auth.js";
     import { auth } from "/js/firebase.js";
     import { getListing, isSpotSaved, saveSpot, unsaveSpot } from "/js/db.js";
+    import {
+      getListingPhotoAttribution,
+      getListingPhotoUrls,
+      usesGooglePhotos
+    } from "/js/places.js";
 
     const params = new URLSearchParams(window.location.search);
     const slug = params.get("slug");
@@ -303,6 +309,15 @@
     const sidebarAddress = document.getElementById("sidebarAddress");
     const sidebarNeighborhood = document.getElementById("sidebarNeighborhood");
     const sidebarType = document.getElementById("sidebarType");
+    const placeHeroMain = document.getElementById("placeHeroMain");
+    const placeHeroThumbs = [
+      document.getElementById("placeHeroThumb1"),
+      document.getElementById("placeHeroThumb2"),
+      document.getElementById("placeHeroThumb3"),
+      document.getElementById("placeHeroThumb4")
+    ];
+    const placePhotoCount = document.getElementById("placePhotoCount");
+    const placePhotoAttribution = document.getElementById("placePhotoAttribution");
     const saveSpotBtn = document.getElementById("saveSpotBtn");
     const wifiPasswordContent = document.getElementById("wifiPasswordContent");
     const loginNudge = document.getElementById("loginNudge");
@@ -502,6 +517,61 @@
       }
     });
 
+    function renderPlacePhotos(listing) {
+      const photoUrls = getListingPhotoUrls(listing);
+      const heroIcon = placeHeroMain.querySelector("i");
+
+      placeHeroMain.classList.remove("has-photo");
+      placeHeroMain.style.backgroundImage = "";
+      if (heroIcon) {
+        heroIcon.style.display = "";
+      }
+
+      placeHeroThumbs.forEach((thumb) => {
+        thumb.classList.remove("has-photo");
+        thumb.style.backgroundImage = "";
+      });
+
+      placePhotoCount.hidden = true;
+      placePhotoAttribution.hidden = true;
+      placePhotoAttribution.textContent = "";
+
+      if (!photoUrls.length) {
+        return;
+      }
+
+      placeHeroMain.classList.add("has-photo");
+      placeHeroMain.style.backgroundImage = `url("${photoUrls[0]}")`;
+      if (heroIcon) {
+        heroIcon.style.display = "none";
+      }
+
+      placeHeroThumbs.forEach((thumb, index) => {
+        const url = photoUrls[index + 1];
+
+        if (!url) {
+          return;
+        }
+
+        thumb.classList.add("has-photo");
+        thumb.style.backgroundImage = `url("${url}")`;
+      });
+
+      if (photoUrls.length > 1) {
+        placePhotoCount.textContent = `${photoUrls.length} photos`;
+        placePhotoCount.hidden = false;
+      }
+
+      if (usesGooglePhotos(listing)) {
+        const attribution = getListingPhotoAttribution(listing);
+
+        if (attribution) {
+          placePhotoAttribution.textContent = `Photo: ${attribution}`;
+          placePhotoAttribution.hidden = false;
+        }
+      }
+    }
+
     async function loadPlace() {
       if (!slug) {
         redirectToExplore();
@@ -568,6 +638,7 @@
         }
 
         renderVibeTags(listing.vibeTags || []);
+        renderPlacePhotos(listing);
 
         sidebarAddress.textContent = listing.address;
         sidebarNeighborhood.textContent = listing.neighborhood;

@@ -200,6 +200,13 @@
         lat: submission.lat || 0,
         lng: submission.lng || 0,
         googlePlaceId: submission.googlePlaceId || "",
+        googlePhotoRef: submission.googlePhotoRef || "",
+        googlePhotoRefs: submission.googlePhotoRefs?.length
+          ? submission.googlePhotoRefs
+          : submission.googlePhotoRef
+            ? [submission.googlePhotoRef]
+            : [],
+        googlePhotoAttribution: submission.googlePhotoAttribution || "",
         status: "approved",
         featured: false,
         wifiNetwork: submission.wifiNetwork || "",

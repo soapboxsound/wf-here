@@ -1401,6 +1401,21 @@
   font-size: var(--text-sm);
 }
 
+.place-hero-main.has-photo,
+.place-hero-thumb.has-photo {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.place-photo-attribution {
+  margin: 0;
+  padding: 6px 16px 0;
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+  text-align: right;
+}
+
 .place-hero {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -1,4 +1,5 @@
 import { getListings } from "/js/db.js";
+import { getListingPhotoUrls } from "/js/places.js";
 
 function slugifyNeighborhood(value = "") {
   return value
@@ -86,8 +87,9 @@ function renderHorizontalCard(listing) {
   const attributes = deriveAttributes(listing)
     .map((attribute) => `<span class="chip">${attribute}</span>`)
     .join("");
-  const photoStyle = listing.photos?.[0]
-    ? `style="background-image: url('${listing.photos[0]}'); background-size: cover; background-position: center;"`
+  const photoUrls = getListingPhotoUrls(listing);
+  const photoStyle = photoUrls[0]
+    ? `style="background-image: url('${photoUrls[0]}'); background-size: cover; background-position: center;"`
     : "";
 
   return `

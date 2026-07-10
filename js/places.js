@@ -36,6 +36,9 @@ export async function getPlaceDetails(placeId, sessionToken) {
   const result = data.result;
   const placeType =
     (result.types || []).find((type) => !IGNORED_PLACE_TYPES.has(type)) || "other";
+  const photos = result.photos || [];
+  const photoReferences = photos.slice(0, 5).map((photo) => photo.photo_reference);
+  const photoAttribution = stripPhotoAttribution(photos[0]?.html_attributions?.[0] || "");
 
   return {
     placeId,
@@ -45,11 +48,49 @@ export async function getPlaceDetails(placeId, sessionToken) {
     lng: result.geometry?.location?.lng ?? 0,
     hours: result.opening_hours?.weekday_text?.join("\n") || null,
     isOpenNow: result.opening_hours?.open_now ?? null,
-    photoReference: result.photos?.[0]?.photo_reference || null,
+    photoReference: photoReferences[0] || null,
+    photoReferences,
+    photoAttribution,
     placeType,
     phone: result.formatted_phone_number || null,
     website: result.website || null
   };
+}
+
+function stripPhotoAttribution(html = "") {
+  return html.replace(/<[^>]+>/g, "").trim();
+}
+
+export function getListingGooglePhotoRefs(listing = {}) {
+  if (Array.isArray(listing.googlePhotoRefs) && listing.googlePhotoRefs.length) {
+    return listing.googlePhotoRefs;
+  }
+
+  if (listing.googlePhotoRef) {
+    return [listing.googlePhotoRef];
+  }
+
+  return [];
+}
+
+export function getListingPhotoUrls(listing = {}) {
+  if (Array.isArray(listing.photos) && listing.photos.length) {
+    return listing.photos;
+  }
+
+  return getListingGooglePhotoRefs(listing).map(getPhotoUrl);
+}
+
+export function getListingPhotoAttribution(listing = {}) {
+  if (Array.isArray(listing.photos) && listing.photos.length) {
+    return "";
+  }
+
+  return listing.googlePhotoAttribution || "";
+}
+
+export function usesGooglePhotos(listing = {}) {
+  return !listing.photos?.length && getListingGooglePhotoRefs(listing).length > 0;
 }
 
 export function getPhotoUrl(photoReference) {
