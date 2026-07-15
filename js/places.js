@@ -58,29 +58,51 @@ export async function getPlaceDetails(placeId, sessionToken) {
   };
 }
 
+const STATUS_BATCH_SIZE = 50;
+
 export async function findPlaceStatus(name, lat, lng) {
-  const params = new URLSearchParams({
-    action: "findplace",
-    input: name
+  const [result] = await findPlaceStatusBatch([{ name, lat, lng }]);
+  return result;
+}
+
+export async function findPlaceStatusBatch(places = []) {
+  if (!places.length) {
+    return [];
+  }
+
+  const response = await fetch("/api/places?action=findplacebatch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(places)
   });
-
-  if (lat) {
-    params.set("lat", String(lat));
-  }
-
-  if (lng) {
-    params.set("lng", String(lng));
-  }
-
-  const response = await fetch(`/api/places?${params}`);
   const data = await response.json();
-  const candidate = data.candidates?.[0];
 
-  return {
-    businessStatus: candidate?.business_status || "UNKNOWN",
-    placeId: candidate?.place_id || "",
-    matchedName: candidate?.name || ""
-  };
+  if (!response.ok) {
+    throw new Error(data.error || "Batch status check failed");
+  }
+
+  return data.results || [];
+}
+
+export async function findPlaceStatusAll(places = [], { batchSize = STATUS_BATCH_SIZE, onProgress } = {}) {
+  const results = new Array(places.length);
+  const totalBatches = Math.ceil(places.length / batchSize);
+
+  for (let batchIndex = 0; batchIndex < totalBatches; batchIndex += 1) {
+    const start = batchIndex * batchSize;
+    const chunk = places.slice(start, start + batchSize);
+    const chunkResults = await findPlaceStatusBatch(chunk);
+
+    chunkResults.forEach((result, index) => {
+      results[start + index] = result;
+    });
+
+    if (onProgress) {
+      onProgress(Math.min(start + chunk.length, places.length), places.length, batchIndex + 1, totalBatches);
+    }
+  }
+
+  return results;
 }
 
 export function isPermanentlyClosed(status = "") {

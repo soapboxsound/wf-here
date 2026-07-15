@@ -136,7 +136,7 @@
     import { db } from "/js/firebase.js";
     import {
       autocomplete,
-      findPlaceStatus,
+      findPlaceStatusAll,
       formatBusinessStatus,
       generateSessionToken,
       getPhotoUrl,
@@ -697,15 +697,21 @@
       checkStatusBtn.textContent = "Checking status...";
 
       try {
-        for (let index = 0; index < itemsToCheck.length; index += 1) {
+        const results = await findPlaceStatusAll(
+          itemsToCheck.map((item) => ({ name: item.name, lat: item.lat, lng: item.lng })),
+          {
+            onProgress(checked, total, batchNumber, totalBatches) {
+              importStatus.textContent = `Checking closure status: ${checked} / ${total} (batch ${batchNumber} of ${totalBatches})`;
+            }
+          }
+        );
+
+        results.forEach((result, index) => {
           const item = itemsToCheck[index];
-          const result = await findPlaceStatus(item.name, item.lat, item.lng);
           item.matchedName = result.matchedName;
           item.googlePlaceId = result.placeId;
           applyBusinessStatus(item, result.businessStatus);
-          importStatus.textContent = `Checking closure status: ${index + 1} / ${itemsToCheck.length}`;
-          await sleep(250);
-        }
+        });
 
         const readyCount = previewItems.filter((item) => item.status === "ready").length;
         const closedCount = previewItems.filter((item) => item.status === "closed").length;
