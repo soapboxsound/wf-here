@@ -132,32 +132,11 @@
             </select>
           </div>
         </div>
-
-        <hr class="form-divider">
-
-        <div class="form-group">
-          <label class="form-label">What makes it good for working?</label>
-          <span class="form-hint">Pick all that apply</span>
-          <div id="attributesChips"></div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Noise level</label>
-          <div id="noiseChips"></div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Cost to sit</label>
-          <div id="costChips"></div>
-        </div>
-
-        <hr class="form-divider">
       </section>
 
       <section class="form-step" data-step="2">
         <div class="form-field">
           <label class="form-label" for="placeNeighborhood">Neighborhood</label>
-          <span class="form-hint">Where in the city is this spot?</span>
           <input class="form-input" id="placeNeighborhood" type="text" placeholder="e.g. Lower East Side">
         </div>
 
@@ -168,6 +147,19 @@
         </div>
 
         <hr class="form-divider">
+
+        <p class="form-label">What it's like to work here</p>
+        <span class="form-hint">Pick one for each — we'll show these on the listing.</span>
+
+        <div class="form-group">
+          <label class="form-label">Noise level</label>
+          <div id="noiseChips"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cost to sit</label>
+          <div id="costChips"></div>
+        </div>
 
         <div class="form-group">
           <label class="form-label">Power outlets</label>
@@ -184,14 +176,6 @@
           <span class="form-hint">Pick all that apply</span>
           <div id="seatingChips"></div>
         </div>
-
-        <div class="form-group">
-          <label class="form-label">The vibe</label>
-          <span class="form-hint">What would you tell a friend about this place?</span>
-          <div id="vibeChips"></div>
-        </div>
-
-        <hr class="form-divider">
       </section>
 
       <section class="form-step" data-step="3">
@@ -223,16 +207,10 @@
             </div>
             <div class="bathroom-input-row">
               <span class="wifi-input-label">Code or key?</span>
-              <input class="wifi-input-field" id="bathroomCode" type="text" placeholder="e.g. 4281 or ask at counter">
-            </div>
-            <div class="bathroom-input-row">
-              <span class="wifi-input-label">Notes</span>
-              <input class="wifi-input-field" id="bathroomNotes" type="text" placeholder="e.g. single stall, very clean">
+              <input class="wifi-input-field" id="bathroomCode" type="text" placeholder="Optional — e.g. 4281 or ask at counter">
             </div>
           </div>
         </div>
-
-        <hr class="form-divider">
       </section>
 
       <section class="form-step" data-step="4">
@@ -247,8 +225,8 @@
 
         <div class="form-field" style="margin-top: 1.25rem;">
           <label class="form-label" for="extraNotes">Anything else worth knowing?</label>
-          <span class="form-hint">Optional — but the good stuff lives here.</span>
-          <textarea class="form-textarea" id="extraNotes" placeholder="e.g. Gets crowded after 10am. Best seats are at the back by the window. They don't mind if you stay all day."></textarea>
+          <span class="form-hint">Optional — vibe, bathroom details, best seats, when it gets busy, etc.</span>
+          <textarea class="form-textarea" id="extraNotes" placeholder="e.g. Quietest in the morning. Best seats are in the back by the window. Single-stall bathroom, very clean."></textarea>
         </div>
       </section>
 
@@ -271,13 +249,11 @@
 
   <script type="module">
     import {
-      ATTRIBUTE_OPTIONS,
       COST_TO_SIT_OPTIONS,
       FOOD_OPTIONS,
       NOISE_LEVEL_OPTIONS,
       OUTLET_OPTIONS,
       SEATING_OPTIONS,
-      VIBE_TAG_OPTIONS,
       WIFI_SPEED_OPTIONS,
       createChipGroup
     } from "/js/components.js";
@@ -293,9 +269,6 @@
     import { onAuthChange } from "/js/auth.js";
     import { auth } from "/js/firebase.js";
 
-    document.getElementById("attributesChips").appendChild(
-      createChipGroup("submit attributes", ATTRIBUTE_OPTIONS, true)
-    );
     document.getElementById("noiseChips").appendChild(
       createChipGroup("submit noise", NOISE_LEVEL_OPTIONS, false)
     );
@@ -313,9 +286,6 @@
     );
     document.getElementById("seatingChips").appendChild(
       createChipGroup("submit seating", SEATING_OPTIONS, true)
-    );
-    document.getElementById("vibeChips").appendChild(
-      createChipGroup("submit vibe", VIBE_TAG_OPTIONS, true)
     );
 
     const bathroomButtons = document.querySelectorAll("[data-bathroom]");
@@ -336,14 +306,12 @@
     const submitBtn = document.getElementById("submitBtn");
     const submitError = document.getElementById("submitError");
     const submitConfirmation = document.getElementById("submitConfirmation");
-    const attributesChips = document.getElementById("attributesChips");
     const noiseChips = document.getElementById("noiseChips");
     const costChips = document.getElementById("costChips");
     const wifiSpeedChips = document.getElementById("wifiSpeedChips");
     const outletsChips = document.getElementById("outletsChips");
     const foodChips = document.getElementById("foodChips");
     const seatingChips = document.getElementById("seatingChips");
-    const vibeChips = document.getElementById("vibeChips");
     const placeSearchInput = document.getElementById("placeSearchInput");
     const placeSearchBtn = document.getElementById("placeSearchBtn");
     const placeAutocompleteList = document.getElementById("placeAutocompleteList");
@@ -750,19 +718,17 @@
         website: isManualEntry ? "" : selectedPlace?.website || "",
         neighborhood: document.getElementById("placeNeighborhood").value.trim(),
         hours: document.getElementById("placeHours").value.trim() || selectedPlace?.hours?.replace(/\n/g, " · ") || "",
-        attributes: getActiveChipValues(attributesChips),
         noiseLevel: getActiveChipValue(noiseChips),
         costToSit: getActiveChipValue(costChips),
         outlets: getActiveChipValue(outletsChips),
         food: getActiveChipValue(foodChips),
         seating: getActiveChipValues(seatingChips),
-        vibeTags: getActiveChipValues(vibeChips),
         wifiNetwork: document.getElementById("wifiNetwork").value.trim(),
         wifiPassword: document.getElementById("wifiPassword").value.trim(),
         wifiSpeed: getActiveChipValue(wifiSpeedChips),
         bathroomAvailable: bathroomYes.classList.contains("is-active"),
         bathroomCode: document.getElementById("bathroomCode").value.trim(),
-        bathroomNotes: document.getElementById("bathroomNotes").value.trim(),
+        bathroomNotes: "",
         notes: document.getElementById("extraNotes").value.trim(),
         submitterEmail: user?.email || "",
         submitterName: user?.displayName || "",
