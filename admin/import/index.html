@@ -306,6 +306,13 @@
       };
     }
 
+    function resetExistingListingsCache() {
+      existingListings = [];
+      existingSlugs = new Set();
+      existingPlaceIds = new Set();
+      existingCoords = [];
+    }
+
     async function loadExistingListings() {
       existingListings = await getAdminListings();
       existingSlugs = new Set(existingListings.map((listing) => listing.slug).filter(Boolean));
@@ -313,6 +320,42 @@
       existingCoords = existingListings
         .filter((listing) => listing.lat && listing.lng)
         .map((listing) => ({ lat: listing.lat, lng: listing.lng }));
+    }
+
+    async function loadExistingListingsSafe(timeoutMs = 12000) {
+      try {
+        await Promise.race([
+          loadExistingListings(),
+          new Promise((_, reject) => {
+            window.setTimeout(() => reject(new Error("Listing lookup timed out")), timeoutMs);
+          })
+        ]);
+      } catch (error) {
+        console.warn("Could not load existing listings for duplicate check", error);
+        resetExistingListingsCache();
+      }
+    }
+
+    async function fetchMapPlaces(url) {
+      const response = await fetch(`/api/import-kml?url=${encodeURIComponent(url)}`);
+      const raw = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (error) {
+        throw new Error(
+          response.ok
+            ? "Server returned invalid map data."
+            : "Map API unavailable. Use the deployed site (not a plain static file server)."
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to load map");
+      }
+
+      return data;
     }
 
     function hideTablePreview() {
@@ -592,19 +635,20 @@
 
       loadMapBtn.disabled = true;
       loadMapBtn.textContent = "Loading map...";
+      importStatus.textContent = "Downloading map from Google...";
       previewMode = "map";
       currentPage = 0;
       checkStatusBtn.hidden = true;
       hideCardPreview();
+      hideTablePreview();
 
       try {
-        await loadExistingListings();
-        const response = await fetch(`/api/import-kml?url=${encodeURIComponent(url)}`);
-        const data = await response.json();
+        const [data] = await Promise.all([
+          fetchMapPlaces(url),
+          loadExistingListingsSafe()
+        ]);
 
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to load map");
-        }
+        importStatus.textContent = "Matching pins against existing listings...";
 
         previewItems = data.places.map((place) => {
           const baseSlug = slugify(place.name);
@@ -817,9 +861,7 @@
       }
     });
 
-    loadExistingListings().catch((error) => {
-      console.error("Failed to load existing listings", error);
-    });
+    loadExistingListingsSafe();
   </script>
 </body>
 </html>
