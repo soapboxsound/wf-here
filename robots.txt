@@ -3,5 +3,6 @@ Allow: /
 Disallow: /admin/
 Disallow: /admin/queue
 Disallow: /admin/listings
+Disallow: /admin/import
 
 Sitemap: https://wf-here.com/sitemap.xml

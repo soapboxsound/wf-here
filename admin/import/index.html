@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>import · wf—here admin</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/new-york">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+  <nav class="bottom-nav">
+    <a class="bn-item" href="/"><i class="ti ti-home"></i><span>home</span></a>
+    <a class="bn-item" href="/explore/new-york"><i class="ti ti-map-2"></i><span>explore</span></a>
+    <a class="bn-item bn-item-submit" href="/submit"><i class="ti ti-circle-plus"></i><span>submit</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-heart"></i><span>saved</span></a>
+    <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
+  </nav>
+
+  <main class="admin-queue-page">
+    <nav class="admin-subnav" aria-label="Admin navigation">
+      <a href="/admin/queue">Review queue</a>
+      <a href="/admin/listings">Listings</a>
+      <a class="is-active" href="/admin/import">Import</a>
+    </nav>
+
+    <h1 class="admin-queue-title">Bulk import</h1>
+    <p class="admin-queue-count">Pull spots from Google Places and publish them as listings. Wifi and workspace details can be filled in later.</p>
+
+    <div class="import-form">
+      <div class="form-field">
+        <label class="form-label" for="importCity">City</label>
+        <select class="form-select" id="importCity">
+          <option value="new-york">New York</option>
+          <option value="los-angeles">Los Angeles</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="importList">Place names</label>
+        <span class="form-hint">One per line — e.g. "Ludlow Coffee Supply" or "NY Public Library, Midtown"</span>
+        <textarea class="form-textarea import-textarea" id="importList" placeholder="Ludlow Coffee Supply&#10;Blank Street Coffee, Williamsburg&#10;NY Public Library"></textarea>
+      </div>
+
+      <div class="import-actions">
+        <button class="listing-btn listing-btn-feature" id="previewBtn" type="button">Preview matches</button>
+        <button class="listing-btn listing-btn-save" id="importBtn" type="button" hidden>Import selected</button>
+      </div>
+    </div>
+
+    <p class="admin-queue-count" id="importStatus"></p>
+    <div id="previewList"></div>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module">
+    import { getAdminListings } from "/js/db.js";
+    import { db } from "/js/firebase.js";
+    import {
+      autocomplete,
+      generateSessionToken,
+      getPhotoUrl,
+      getPlaceDetails
+    } from "/js/places.js";
+    import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const importCity = document.getElementById("importCity");
+    const importList = document.getElementById("importList");
+    const previewBtn = document.getElementById("previewBtn");
+    const importBtn = document.getElementById("importBtn");
+    const importStatus = document.getElementById("importStatus");
+    const previewList = document.getElementById("previewList");
+
+    const cityLabels = {
+      "new-york": "New York",
+      "los-angeles": "Los Angeles"
+    };
+
+    const googleTypeMap = {
+      cafe: "cafe",
+      coffee_shop: "cafe",
+      bakery: "cafe",
+      library: "library",
+      lodging: "hotel-lobby",
+      hotel: "hotel-lobby",
+      park: "park",
+      coworking_space: "co-working",
+      bookstore: "other",
+      restaurant: "other",
+      bar: "other"
+    };
+
+    let sessionToken = generateSessionToken();
+    let previewItems = [];
+    let existingSlugs = new Set();
+    let existingPlaceIds = new Set();
+
+    function slugify(name = "") {
+      return name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `admin-toast ${type === "success" ? "is-success" : "is-muted"}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      window.setTimeout(() => toast.remove(), 3000);
+    }
+
+    function uniqueSlug(baseSlug, reservedSlugs) {
+      let slug = baseSlug;
+      let suffix = 2;
+
+      while (reservedSlugs.has(slug)) {
+        slug = `${baseSlug}-${suffix}`;
+        suffix += 1;
+      }
+
+      reservedSlugs.add(slug);
+      return slug;
+    }
+
+    function buildListing(details, city, slug) {
+      const hours = details.hours ? details.hours.replace(/\n/g, " · ") : "";
+
+      return {
+        name: details.name,
+        slug,
+        city,
+        type: googleTypeMap[details.placeType] || "other",
+        address: details.address,
+        neighborhood: "",
+        lat: details.lat || 0,
+        lng: details.lng || 0,
+        googlePlaceId: details.placeId,
+        googlePhotoRef: details.photoReference || "",
+        googlePhotoRefs: details.photoReferences || [],
+        googlePhotoAttribution: details.photoAttribution || "",
+        status: "approved",
+        featured: false,
+        wifiNetwork: "",
+        wifiPassword: "",
+        wifiSpeed: "decent",
+        wifiMbps: 0,
+        noiseLevel: "",
+        outlets: "",
+        food: "",
+        seating: [],
+        hours,
+        costToSit: "",
+        bathroom: false,
+        bathroomCode: "",
+        bathroomNotes: "",
+        vibeTags: [],
+        photos: [],
+        submittedBy: "admin-import"
+      };
+    }
+
+    async function loadExistingListings() {
+      const listings = await getAdminListings();
+      existingSlugs = new Set(listings.map((listing) => listing.slug).filter(Boolean));
+      existingPlaceIds = new Set(listings.map((listing) => listing.googlePlaceId).filter(Boolean));
+    }
+
+    async function resolvePlace(query, cityLabel) {
+      const searchQuery = query.includes(cityLabel) ? query : `${query}, ${cityLabel}`;
+      const predictions = await autocomplete(searchQuery, sessionToken);
+
+      if (!predictions.length) {
+        return { status: "not-found", query };
+      }
+
+      sessionToken = generateSessionToken();
+      const details = await getPlaceDetails(predictions[0].place_id, sessionToken);
+      sessionToken = generateSessionToken();
+
+      const baseSlug = slugify(details.name);
+      const isDuplicate =
+        existingPlaceIds.has(details.placeId) || existingSlugs.has(baseSlug);
+
+      return {
+        status: isDuplicate ? "duplicate" : "ready",
+        query,
+        details,
+        slug: baseSlug,
+        selected: !isDuplicate
+      };
+    }
+
+    function renderPreview() {
+      previewList.innerHTML = "";
+
+      if (!previewItems.length) {
+        importBtn.hidden = true;
+        return;
+      }
+
+      const importableCount = previewItems.filter(
+        (item) => item.selected && item.status === "ready"
+      ).length;
+
+      importBtn.hidden = importableCount === 0;
+      importBtn.textContent = `Import ${importableCount} spot${importableCount === 1 ? "" : "s"}`;
+
+      previewItems.forEach((item, index) => {
+        const card = document.createElement("article");
+        card.className = "import-preview-card";
+
+        if (item.status === "duplicate") {
+          card.classList.add("is-duplicate");
+        }
+
+        if (item.status === "not-found" || item.status === "error") {
+          card.classList.add("is-error");
+        }
+
+        const photoStyle = item.details?.photoReference
+          ? `style="background-image: url('${getPhotoUrl(item.details.photoReference)}')"`
+          : "";
+
+        const statusLabel =
+          item.status === "ready"
+            ? "ready"
+            : item.status === "duplicate"
+              ? "already listed"
+              : item.status === "not-found"
+                ? "not found"
+                : "error";
+
+        const statusClass =
+          item.status === "ready"
+            ? "is-ready"
+            : item.status === "duplicate"
+              ? "is-duplicate"
+              : "is-error";
+
+        const bodyMarkup =
+          item.details
+            ? `
+              <div class="import-preview-photo" ${photoStyle}></div>
+              <div>
+                <p class="import-preview-query">Searched: ${item.query}</p>
+                <h2 class="listing-card-name">${item.details.name}</h2>
+                <p class="listing-card-meta">${item.details.address}</p>
+              </div>
+            `
+            : `
+              <div>
+                <p class="import-preview-query">Searched: ${item.query}</p>
+                <p class="listing-card-meta">${item.error || "No Google match found"}</p>
+              </div>
+            `;
+
+        card.innerHTML = `
+          <div class="import-preview-header">
+            <label class="import-preview-check">
+              <input type="checkbox" data-index="${index}" ${item.selected ? "checked" : ""} ${item.status !== "ready" ? "disabled" : ""}>
+              <span class="listing-status-badge ${statusClass}">${statusLabel}</span>
+            </label>
+          </div>
+          <div class="import-preview-body">${bodyMarkup}</div>
+        `;
+
+        const checkbox = card.querySelector("input[type='checkbox']");
+        checkbox?.addEventListener("change", () => {
+          item.selected = checkbox.checked;
+          renderPreview();
+        });
+
+        previewList.appendChild(card);
+      });
+    }
+
+    previewBtn.addEventListener("click", async () => {
+      const lines = importList.value
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (!lines.length) {
+        showToast("Add at least one place name.", "muted");
+        return;
+      }
+
+      previewBtn.disabled = true;
+      previewBtn.textContent = "Looking up places...";
+      importStatus.textContent = `0 / ${lines.length} matched`;
+      previewItems = [];
+
+      try {
+        await loadExistingListings();
+        const cityLabel = cityLabels[importCity.value];
+
+        for (let index = 0; index < lines.length; index += 1) {
+          const query = lines[index];
+
+          try {
+            const item = await resolvePlace(query, cityLabel);
+            previewItems.push(item);
+          } catch (error) {
+            console.error("Failed to resolve place", query, error);
+            previewItems.push({
+              status: "error",
+              query,
+              error: "Lookup failed",
+              selected: false
+            });
+          }
+
+          importStatus.textContent = `${index + 1} / ${lines.length} matched`;
+          await sleep(250);
+        }
+
+        const readyCount = previewItems.filter((item) => item.status === "ready").length;
+        importStatus.textContent = `${readyCount} of ${lines.length} ready to import`;
+        renderPreview();
+      } catch (error) {
+        console.error("Preview failed", error);
+        showToast("Preview failed. Check the console.", "muted");
+      } finally {
+        previewBtn.disabled = false;
+        previewBtn.textContent = "Preview matches";
+      }
+    });
+
+    importBtn.addEventListener("click", async () => {
+      const toImport = previewItems.filter((item) => item.selected && item.status === "ready");
+
+      if (!toImport.length) {
+        return;
+      }
+
+      importBtn.disabled = true;
+      previewBtn.disabled = true;
+      importBtn.textContent = "Importing...";
+
+      const reservedSlugs = new Set(existingSlugs);
+      let imported = 0;
+
+      try {
+        for (const item of toImport) {
+          const slug = uniqueSlug(item.slug, reservedSlugs);
+          const listing = buildListing(item.details, importCity.value, slug);
+          await setDoc(doc(db, "listings", slug), listing);
+          existingPlaceIds.add(item.details.placeId);
+          imported += 1;
+          item.status = "imported";
+          item.selected = false;
+        }
+
+        importStatus.textContent = `Imported ${imported} spot${imported === 1 ? "" : "s"}`;
+        showToast(`Imported ${imported} spot${imported === 1 ? "" : "s"}.`);
+        renderPreview();
+      } catch (error) {
+        console.error("Import failed", error);
+        showToast("Import failed. Check the console.", "muted");
+      } finally {
+        importBtn.disabled = false;
+        previewBtn.disabled = false;
+        const remaining = previewItems.filter((item) => item.selected && item.status === "ready").length;
+        importBtn.textContent = `Import ${remaining} spot${remaining === 1 ? "" : "s"}`;
+      }
+    });
+
+    loadExistingListings().catch((error) => {
+      console.error("Failed to load existing listings", error);
+    });
+  </script>
+</body>
+</html>
