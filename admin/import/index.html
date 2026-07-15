@@ -42,7 +42,7 @@
     <a class="bn-item" href="/profile"><i class="ti ti-user"></i><span>profile</span></a>
   </nav>
 
-  <main class="admin-queue-page">
+  <main class="admin-queue-page admin-import-page">
     <nav class="admin-subnav" aria-label="Admin navigation">
       <a href="/admin/queue">Review queue</a>
       <a href="/admin/listings">Listings</a>
@@ -50,9 +50,46 @@
     </nav>
 
     <h1 class="admin-queue-title">Bulk import</h1>
-    <p class="admin-queue-count">Pull spots from Google Places and publish them as listings. Wifi and workspace details can be filled in later.</p>
+    <p class="admin-queue-count">Import spots for review before publishing. Wifi and workspace details can be filled in later.</p>
 
-    <div class="import-form">
+    <section class="import-panel">
+      <h2 class="import-panel-title">Google My Maps</h2>
+      <p class="form-hint">Paste a public My Maps link. We download the KML and import name + coordinates from each pin.</p>
+
+      <div class="form-field">
+        <label class="form-label" for="mapUrl">My Maps URL</label>
+        <input class="form-input" id="mapUrl" type="url" value="https://www.google.com/maps/d/u/0/viewer?mid=12NNiWXo2ztkNCG-LlVWvzTnNqQl4FZY">
+      </div>
+
+      <div class="form-two-col">
+        <div class="form-field">
+          <label class="form-label" for="mapCity">City</label>
+          <select class="form-select" id="mapCity">
+            <option value="new-york">New York</option>
+            <option value="los-angeles">Los Angeles</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="mapImportStatus">Import as</label>
+          <select class="form-select" id="mapImportStatus">
+            <option value="unpublished" selected>Unpublished (for review)</option>
+            <option value="approved">Published</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="import-actions">
+        <button class="listing-btn listing-btn-feature" id="loadMapBtn" type="button">Load map</button>
+        <button class="listing-btn listing-btn-save" id="importMapBtn" type="button" hidden>Import selected</button>
+      </div>
+    </section>
+
+    <hr class="form-divider">
+
+    <section class="import-panel">
+      <h2 class="import-panel-title">Search by name</h2>
+      <p class="form-hint">One place per line — uses Google Places to match address, hours, and photos.</p>
+
       <div class="form-field">
         <label class="form-label" for="importCity">City</label>
         <select class="form-select" id="importCity">
@@ -63,17 +100,31 @@
 
       <div class="form-field">
         <label class="form-label" for="importList">Place names</label>
-        <span class="form-hint">One per line — e.g. "Ludlow Coffee Supply" or "NY Public Library, Midtown"</span>
-        <textarea class="form-textarea import-textarea" id="importList" placeholder="Ludlow Coffee Supply&#10;Blank Street Coffee, Williamsburg&#10;NY Public Library"></textarea>
+        <textarea class="form-textarea import-textarea" id="importList" placeholder="Ludlow Coffee Supply&#10;Blank Street Coffee, Williamsburg"></textarea>
       </div>
 
       <div class="import-actions">
         <button class="listing-btn listing-btn-feature" id="previewBtn" type="button">Preview matches</button>
         <button class="listing-btn listing-btn-save" id="importBtn" type="button" hidden>Import selected</button>
       </div>
-    </div>
+    </section>
 
     <p class="admin-queue-count" id="importStatus"></p>
+    <div class="import-map-summary" id="mapSummary" hidden></div>
+    <div class="import-table-toolbar" id="tableToolbar" hidden></div>
+    <div class="import-table-wrap" id="previewTable" hidden>
+      <table class="import-table">
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            <th scope="col">Name</th>
+            <th scope="col">Coordinates</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody id="previewTableBody"></tbody>
+      </table>
+    </div>
     <div id="previewList"></div>
   </main>
 
@@ -90,11 +141,22 @@
     } from "/js/places.js";
     import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    const PAGE_SIZE = 50;
+
+    const mapUrl = document.getElementById("mapUrl");
+    const mapCity = document.getElementById("mapCity");
+    const mapImportStatus = document.getElementById("mapImportStatus");
+    const loadMapBtn = document.getElementById("loadMapBtn");
+    const importMapBtn = document.getElementById("importMapBtn");
     const importCity = document.getElementById("importCity");
     const importList = document.getElementById("importList");
     const previewBtn = document.getElementById("previewBtn");
     const importBtn = document.getElementById("importBtn");
     const importStatus = document.getElementById("importStatus");
+    const mapSummary = document.getElementById("mapSummary");
+    const tableToolbar = document.getElementById("tableToolbar");
+    const previewTable = document.getElementById("previewTable");
+    const previewTableBody = document.getElementById("previewTableBody");
     const previewList = document.getElementById("previewList");
 
     const cityLabels = {
@@ -118,8 +180,12 @@
 
     let sessionToken = generateSessionToken();
     let previewItems = [];
+    let previewMode = "none";
+    let currentPage = 0;
+    let existingListings = [];
     let existingSlugs = new Set();
     let existingPlaceIds = new Set();
+    let existingCoords = [];
 
     function slugify(name = "") {
       return name
@@ -154,7 +220,13 @@
       return slug;
     }
 
-    function buildListing(details, city, slug) {
+    function isCoordDuplicate(lat, lng) {
+      return existingCoords.some(
+        (point) => Math.abs(point.lat - lat) < 0.0004 && Math.abs(point.lng - lng) < 0.0004
+      );
+    }
+
+    function buildListingFromPlaces(details, city, slug, status) {
       const hours = details.hours ? details.hours.replace(/\n/g, " · ") : "";
 
       return {
@@ -170,7 +242,7 @@
         googlePhotoRef: details.photoReference || "",
         googlePhotoRefs: details.photoReferences || [],
         googlePhotoAttribution: details.photoAttribution || "",
-        status: "approved",
+        status,
         featured: false,
         wifiNetwork: "",
         wifiPassword: "",
@@ -187,55 +259,185 @@
         bathroomNotes: "",
         vibeTags: [],
         photos: [],
+        notes: "",
         submittedBy: "admin-import"
       };
     }
 
-    async function loadExistingListings() {
-      const listings = await getAdminListings();
-      existingSlugs = new Set(listings.map((listing) => listing.slug).filter(Boolean));
-      existingPlaceIds = new Set(listings.map((listing) => listing.googlePlaceId).filter(Boolean));
-    }
-
-    async function resolvePlace(query, cityLabel) {
-      const searchQuery = query.includes(cityLabel) ? query : `${query}, ${cityLabel}`;
-      const predictions = await autocomplete(searchQuery, sessionToken);
-
-      if (!predictions.length) {
-        return { status: "not-found", query };
-      }
-
-      sessionToken = generateSessionToken();
-      const details = await getPlaceDetails(predictions[0].place_id, sessionToken);
-      sessionToken = generateSessionToken();
-
-      const baseSlug = slugify(details.name);
-      const isDuplicate =
-        existingPlaceIds.has(details.placeId) || existingSlugs.has(baseSlug);
-
+    function buildListingFromMap(place, city, slug, status) {
       return {
-        status: isDuplicate ? "duplicate" : "ready",
-        query,
-        details,
-        slug: baseSlug,
-        selected: !isDuplicate
+        name: place.name,
+        slug,
+        city,
+        type: "cafe",
+        address: "",
+        neighborhood: "",
+        lat: place.lat,
+        lng: place.lng,
+        googlePlaceId: "",
+        googlePhotoRef: "",
+        googlePhotoRefs: [],
+        googlePhotoAttribution: "",
+        status,
+        featured: false,
+        wifiNetwork: "",
+        wifiPassword: "",
+        wifiSpeed: "decent",
+        wifiMbps: 0,
+        noiseLevel: "",
+        outlets: "",
+        food: "",
+        seating: [],
+        hours: "",
+        costToSit: "",
+        bathroom: false,
+        bathroomCode: "",
+        bathroomNotes: "",
+        vibeTags: [],
+        photos: [],
+        notes: place.description || "",
+        submittedBy: "admin-mymaps"
       };
     }
 
-    function renderPreview() {
+    async function loadExistingListings() {
+      existingListings = await getAdminListings();
+      existingSlugs = new Set(existingListings.map((listing) => listing.slug).filter(Boolean));
+      existingPlaceIds = new Set(existingListings.map((listing) => listing.googlePlaceId).filter(Boolean));
+      existingCoords = existingListings
+        .filter((listing) => listing.lat && listing.lng)
+        .map((listing) => ({ lat: listing.lat, lng: listing.lng }));
+    }
+
+    function hideTablePreview() {
+      mapSummary.hidden = true;
+      tableToolbar.hidden = true;
+      previewTable.hidden = true;
+    }
+
+    function hideCardPreview() {
+      previewList.innerHTML = "";
+    }
+
+    function getImportableCount() {
+      return previewItems.filter((item) => item.selected && item.status === "ready").length;
+    }
+
+    function updateImportButtons() {
+      const count = getImportableCount();
+      importMapBtn.hidden = previewMode !== "map" || count === 0;
+      importBtn.hidden = previewMode !== "search" || count === 0;
+
+      const label = `Import ${count} spot${count === 1 ? "" : "s"}`;
+      importMapBtn.textContent = label;
+      importBtn.textContent = label;
+    }
+
+    function renderMapTable() {
+      hideCardPreview();
+      const totalPages = Math.max(1, Math.ceil(previewItems.length / PAGE_SIZE));
+      currentPage = Math.min(currentPage, totalPages - 1);
+
+      const readyCount = previewItems.filter((item) => item.status === "ready").length;
+      const duplicateCount = previewItems.filter((item) => item.status === "duplicate").length;
+
+      mapSummary.hidden = false;
+      mapSummary.innerHTML = `
+        <strong>${previewItems.length}</strong> pins loaded
+        · <strong>${readyCount}</strong> new
+        · <strong>${duplicateCount}</strong> already listed
+      `;
+
+      tableToolbar.hidden = false;
+      tableToolbar.innerHTML = `
+        <button class="listing-btn listing-btn-edit" type="button" id="selectAllReadyBtn">Select all new</button>
+        <button class="listing-btn listing-btn-cancel" type="button" id="clearSelectionBtn">Clear selection</button>
+        <span class="import-page-label">Page ${currentPage + 1} of ${totalPages}</span>
+        <button class="listing-btn listing-btn-edit" type="button" id="prevPageBtn" ${currentPage === 0 ? "disabled" : ""}>Previous</button>
+        <button class="listing-btn listing-btn-edit" type="button" id="nextPageBtn" ${currentPage >= totalPages - 1 ? "disabled" : ""}>Next</button>
+      `;
+
+      previewTable.hidden = false;
+      previewTableBody.innerHTML = "";
+
+      const pageItems = previewItems.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
+
+      pageItems.forEach((item) => {
+        const globalIndex = previewItems.indexOf(item);
+        const row = document.createElement("tr");
+        const statusClass =
+          item.status === "ready"
+            ? "is-ready"
+            : item.status === "duplicate"
+              ? "is-duplicate"
+              : "is-error";
+        const statusLabel =
+          item.status === "ready"
+            ? "new"
+            : item.status === "duplicate"
+              ? "duplicate"
+              : item.status;
+
+        row.innerHTML = `
+          <td>
+            <input type="checkbox" data-index="${globalIndex}" ${item.selected ? "checked" : ""} ${item.status !== "ready" ? "disabled" : ""}>
+          </td>
+          <td>
+            <div class="import-table-name">${item.name}</div>
+            ${item.description ? `<div class="import-table-note">${item.description}</div>` : ""}
+          </td>
+          <td class="import-table-coords">${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}</td>
+          <td><span class="listing-status-badge ${statusClass}">${statusLabel}</span></td>
+        `;
+
+        const checkbox = row.querySelector("input[type='checkbox']");
+        checkbox?.addEventListener("change", () => {
+          item.selected = checkbox.checked;
+          updateImportButtons();
+        });
+
+        previewTableBody.appendChild(row);
+      });
+
+      document.getElementById("selectAllReadyBtn")?.addEventListener("click", () => {
+        previewItems.forEach((item) => {
+          if (item.status === "ready") {
+            item.selected = true;
+          }
+        });
+        renderMapTable();
+        updateImportButtons();
+      });
+
+      document.getElementById("clearSelectionBtn")?.addEventListener("click", () => {
+        previewItems.forEach((item) => {
+          item.selected = false;
+        });
+        renderMapTable();
+        updateImportButtons();
+      });
+
+      document.getElementById("prevPageBtn")?.addEventListener("click", () => {
+        currentPage -= 1;
+        renderMapTable();
+      });
+
+      document.getElementById("nextPageBtn")?.addEventListener("click", () => {
+        currentPage += 1;
+        renderMapTable();
+      });
+
+      updateImportButtons();
+    }
+
+    function renderSearchPreview() {
+      hideTablePreview();
       previewList.innerHTML = "";
 
       if (!previewItems.length) {
-        importBtn.hidden = true;
+        updateImportButtons();
         return;
       }
-
-      const importableCount = previewItems.filter(
-        (item) => item.selected && item.status === "ready"
-      ).length;
-
-      importBtn.hidden = importableCount === 0;
-      importBtn.textContent = `Import ${importableCount} spot${importableCount === 1 ? "" : "s"}`;
 
       previewItems.forEach((item, index) => {
         const card = document.createElement("article");
@@ -269,22 +471,21 @@
               ? "is-duplicate"
               : "is-error";
 
-        const bodyMarkup =
-          item.details
-            ? `
-              <div class="import-preview-photo" ${photoStyle}></div>
-              <div>
-                <p class="import-preview-query">Searched: ${item.query}</p>
-                <h2 class="listing-card-name">${item.details.name}</h2>
-                <p class="listing-card-meta">${item.details.address}</p>
-              </div>
-            `
-            : `
-              <div>
-                <p class="import-preview-query">Searched: ${item.query}</p>
-                <p class="listing-card-meta">${item.error || "No Google match found"}</p>
-              </div>
-            `;
+        const bodyMarkup = item.details
+          ? `
+            <div class="import-preview-photo" ${photoStyle}></div>
+            <div>
+              <p class="import-preview-query">Searched: ${item.query}</p>
+              <h2 class="listing-card-name">${item.details.name}</h2>
+              <p class="listing-card-meta">${item.details.address}</p>
+            </div>
+          `
+          : `
+            <div>
+              <p class="import-preview-query">Searched: ${item.query}</p>
+              <p class="listing-card-meta">${item.error || "No Google match found"}</p>
+            </div>
+          `;
 
         card.innerHTML = `
           <div class="import-preview-header">
@@ -296,15 +497,133 @@
           <div class="import-preview-body">${bodyMarkup}</div>
         `;
 
-        const checkbox = card.querySelector("input[type='checkbox']");
-        checkbox?.addEventListener("change", () => {
-          item.selected = checkbox.checked;
-          renderPreview();
+        card.querySelector("input[type='checkbox']")?.addEventListener("change", (event) => {
+          item.selected = event.target.checked;
+          updateImportButtons();
         });
 
         previewList.appendChild(card);
       });
+
+      updateImportButtons();
     }
+
+    async function resolvePlace(query, cityLabel) {
+      const searchQuery = query.includes(cityLabel) ? query : `${query}, ${cityLabel}`;
+      const predictions = await autocomplete(searchQuery, sessionToken);
+
+      if (!predictions.length) {
+        return { status: "not-found", query };
+      }
+
+      sessionToken = generateSessionToken();
+      const details = await getPlaceDetails(predictions[0].place_id, sessionToken);
+      sessionToken = generateSessionToken();
+
+      const baseSlug = slugify(details.name);
+      const isDuplicate =
+        existingPlaceIds.has(details.placeId) || existingSlugs.has(baseSlug);
+
+      return {
+        status: isDuplicate ? "duplicate" : "ready",
+        query,
+        details,
+        slug: baseSlug,
+        selected: !isDuplicate
+      };
+    }
+
+    loadMapBtn.addEventListener("click", async () => {
+      const url = mapUrl.value.trim();
+
+      if (!url) {
+        showToast("Paste a My Maps URL first.", "muted");
+        return;
+      }
+
+      loadMapBtn.disabled = true;
+      loadMapBtn.textContent = "Loading map...";
+      previewMode = "map";
+      currentPage = 0;
+      hideCardPreview();
+
+      try {
+        await loadExistingListings();
+        const response = await fetch(`/api/import-kml?url=${encodeURIComponent(url)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load map");
+        }
+
+        previewItems = data.places.map((place) => {
+          const baseSlug = slugify(place.name);
+          const duplicate = existingSlugs.has(baseSlug) || isCoordDuplicate(place.lat, place.lng);
+
+          return {
+            status: duplicate ? "duplicate" : "ready",
+            name: place.name,
+            description: place.description,
+            lat: place.lat,
+            lng: place.lng,
+            slug: baseSlug,
+            selected: !duplicate
+          };
+        });
+
+        const readyCount = previewItems.filter((item) => item.status === "ready").length;
+        importStatus.textContent = `${data.mapName}: ${readyCount} new spots ready to import`;
+        renderMapTable();
+        showToast(`Loaded ${previewItems.length} pins from ${data.mapName}.`);
+      } catch (error) {
+        console.error("Map load failed", error);
+        showToast(error.message || "Could not load map.", "muted");
+        importStatus.textContent = "";
+        hideTablePreview();
+      } finally {
+        loadMapBtn.disabled = false;
+        loadMapBtn.textContent = "Load map";
+      }
+    });
+
+    importMapBtn.addEventListener("click", async () => {
+      const toImport = previewItems.filter((item) => item.selected && item.status === "ready");
+
+      if (!toImport.length) {
+        return;
+      }
+
+      importMapBtn.disabled = true;
+      loadMapBtn.disabled = true;
+      importMapBtn.textContent = "Importing...";
+
+      const reservedSlugs = new Set(existingSlugs);
+      const status = mapImportStatus.value;
+      let imported = 0;
+
+      try {
+        for (const item of toImport) {
+          const slug = uniqueSlug(item.slug, reservedSlugs);
+          const listing = buildListingFromMap(item, mapCity.value, slug, status);
+          await setDoc(doc(db, "listings", slug), listing);
+          existingCoords.push({ lat: item.lat, lng: item.lng });
+          imported += 1;
+          item.status = "imported";
+          item.selected = false;
+        }
+
+        importStatus.textContent = `Imported ${imported} spot${imported === 1 ? "" : "s"} as ${status}`;
+        showToast(`Imported ${imported} spot${imported === 1 ? "" : "s"}.`);
+        renderMapTable();
+      } catch (error) {
+        console.error("Map import failed", error);
+        showToast("Import failed. Check the console.", "muted");
+      } finally {
+        importMapBtn.disabled = false;
+        loadMapBtn.disabled = false;
+        updateImportButtons();
+      }
+    });
 
     previewBtn.addEventListener("click", async () => {
       const lines = importList.value
@@ -317,6 +636,8 @@
         return;
       }
 
+      previewMode = "search";
+      hideTablePreview();
       previewBtn.disabled = true;
       previewBtn.textContent = "Looking up places...";
       importStatus.textContent = `0 / ${lines.length} matched`;
@@ -330,8 +651,7 @@
           const query = lines[index];
 
           try {
-            const item = await resolvePlace(query, cityLabel);
-            previewItems.push(item);
+            previewItems.push(await resolvePlace(query, cityLabel));
           } catch (error) {
             console.error("Failed to resolve place", query, error);
             previewItems.push({
@@ -348,7 +668,7 @@
 
         const readyCount = previewItems.filter((item) => item.status === "ready").length;
         importStatus.textContent = `${readyCount} of ${lines.length} ready to import`;
-        renderPreview();
+        renderSearchPreview();
       } catch (error) {
         console.error("Preview failed", error);
         showToast("Preview failed. Check the console.", "muted");
@@ -375,7 +695,7 @@
       try {
         for (const item of toImport) {
           const slug = uniqueSlug(item.slug, reservedSlugs);
-          const listing = buildListing(item.details, importCity.value, slug);
+          const listing = buildListingFromPlaces(item.details, importCity.value, slug, "approved");
           await setDoc(doc(db, "listings", slug), listing);
           existingPlaceIds.add(item.details.placeId);
           imported += 1;
@@ -385,15 +705,14 @@
 
         importStatus.textContent = `Imported ${imported} spot${imported === 1 ? "" : "s"}`;
         showToast(`Imported ${imported} spot${imported === 1 ? "" : "s"}.`);
-        renderPreview();
+        renderSearchPreview();
       } catch (error) {
         console.error("Import failed", error);
         showToast("Import failed. Check the console.", "muted");
       } finally {
         importBtn.disabled = false;
         previewBtn.disabled = false;
-        const remaining = previewItems.filter((item) => item.selected && item.status === "ready").length;
-        importBtn.textContent = `Import ${remaining} spot${remaining === 1 ? "" : "s"}`;
+        updateImportButtons();
       }
     });
 

@@ -3423,3 +3423,91 @@
   background: var(--color-surface-sunken);
   color: var(--color-danger);
 }
+
+.admin-import-page {
+  max-width: 960px;
+}
+
+.import-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.import-panel-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+.import-map-summary {
+  margin: 0.75rem 0;
+  color: var(--color-ink-secondary);
+  font-size: var(--text-sm);
+}
+
+.import-table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.import-page-label {
+  margin-left: auto;
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.import-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  border: var(--border-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+}
+
+.import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.import-table th,
+.import-table td {
+  padding: 10px 12px;
+  border-bottom: var(--border-hairline);
+  text-align: left;
+  vertical-align: top;
+}
+
+.import-table th {
+  color: var(--color-ink-muted);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-xs);
+}
+
+.import-table tr:last-child td {
+  border-bottom: none;
+}
+
+.import-table-name {
+  color: var(--color-ink);
+  font-weight: var(--weight-medium);
+}
+
+.import-table-note {
+  margin-top: 2px;
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+  word-break: break-all;
+}
+
+.import-table-coords {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
