@@ -80,6 +80,7 @@
 
       <div class="import-actions">
         <button class="listing-btn listing-btn-feature" id="loadMapBtn" type="button">Load map</button>
+        <button class="listing-btn listing-btn-edit" id="checkStatusBtn" type="button" hidden>Check closure status</button>
         <button class="listing-btn listing-btn-save" id="importMapBtn" type="button" hidden>Import selected</button>
       </div>
     </section>
@@ -135,9 +136,13 @@
     import { db } from "/js/firebase.js";
     import {
       autocomplete,
+      findPlaceStatus,
+      formatBusinessStatus,
       generateSessionToken,
       getPhotoUrl,
-      getPlaceDetails
+      getPlaceDetails,
+      isPermanentlyClosed,
+      isTemporarilyClosed
     } from "/js/places.js";
     import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -147,6 +152,7 @@
     const mapCity = document.getElementById("mapCity");
     const mapImportStatus = document.getElementById("mapImportStatus");
     const loadMapBtn = document.getElementById("loadMapBtn");
+    const checkStatusBtn = document.getElementById("checkStatusBtn");
     const importMapBtn = document.getElementById("importMapBtn");
     const importCity = document.getElementById("importCity");
     const importList = document.getElementById("importList");
@@ -319,8 +325,55 @@
       previewList.innerHTML = "";
     }
 
+    function applyBusinessStatus(item, businessStatus) {
+      item.businessStatus = businessStatus;
+
+      if (item.status === "duplicate" || item.status === "imported") {
+        return;
+      }
+
+      if (isPermanentlyClosed(businessStatus)) {
+        item.status = "closed";
+        item.selected = false;
+        return;
+      }
+
+      if (isTemporarilyClosed(businessStatus)) {
+        item.status = "closed-temp";
+        return;
+      }
+
+      item.status = "ready";
+    }
+
+    function getStatusMeta(item) {
+      if (item.status === "ready") {
+        return { label: "new", className: "is-ready" };
+      }
+
+      if (item.status === "duplicate") {
+        return { label: "duplicate", className: "is-duplicate" };
+      }
+
+      if (item.status === "closed") {
+        return { label: "closed permanently", className: "is-error" };
+      }
+
+      if (item.status === "closed-temp") {
+        return { label: "closed temporarily", className: "is-duplicate" };
+      }
+
+      if (item.status === "not-found") {
+        return { label: "not found", className: "is-error" };
+      }
+
+      return { label: item.status || "error", className: "is-error" };
+    }
+
     function getImportableCount() {
-      return previewItems.filter((item) => item.selected && item.status === "ready").length;
+      return previewItems.filter(
+        (item) => item.selected && (item.status === "ready" || item.status === "closed-temp")
+      ).length;
     }
 
     function updateImportButtons() {
@@ -340,12 +393,16 @@
 
       const readyCount = previewItems.filter((item) => item.status === "ready").length;
       const duplicateCount = previewItems.filter((item) => item.status === "duplicate").length;
+      const closedCount = previewItems.filter((item) => item.status === "closed").length;
+      const closedTempCount = previewItems.filter((item) => item.status === "closed-temp").length;
 
       mapSummary.hidden = false;
       mapSummary.innerHTML = `
         <strong>${previewItems.length}</strong> pins loaded
         · <strong>${readyCount}</strong> new
         · <strong>${duplicateCount}</strong> already listed
+        ${closedCount ? `· <strong>${closedCount}</strong> closed permanently` : ""}
+        ${closedTempCount ? `· <strong>${closedTempCount}</strong> closed temporarily` : ""}
       `;
 
       tableToolbar.hidden = false;
@@ -365,29 +422,19 @@
       pageItems.forEach((item) => {
         const globalIndex = previewItems.indexOf(item);
         const row = document.createElement("tr");
-        const statusClass =
-          item.status === "ready"
-            ? "is-ready"
-            : item.status === "duplicate"
-              ? "is-duplicate"
-              : "is-error";
-        const statusLabel =
-          item.status === "ready"
-            ? "new"
-            : item.status === "duplicate"
-              ? "duplicate"
-              : item.status;
+        const statusMeta = getStatusMeta(item);
 
         row.innerHTML = `
           <td>
-            <input type="checkbox" data-index="${globalIndex}" ${item.selected ? "checked" : ""} ${item.status !== "ready" ? "disabled" : ""}>
+            <input type="checkbox" data-index="${globalIndex}" ${item.selected ? "checked" : ""} ${item.status !== "ready" && item.status !== "closed-temp" ? "disabled" : ""}>
           </td>
           <td>
             <div class="import-table-name">${item.name}</div>
             ${item.description ? `<div class="import-table-note">${item.description}</div>` : ""}
+            ${item.matchedName && item.matchedName !== item.name ? `<div class="import-table-note">Google match: ${item.matchedName}</div>` : ""}
           </td>
           <td class="import-table-coords">${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}</td>
-          <td><span class="listing-status-badge ${statusClass}">${statusLabel}</span></td>
+          <td><span class="listing-status-badge ${statusMeta.className}">${statusMeta.label}</span></td>
         `;
 
         const checkbox = row.querySelector("input[type='checkbox']");
@@ -447,29 +494,22 @@
           card.classList.add("is-duplicate");
         }
 
-        if (item.status === "not-found" || item.status === "error") {
+        if (item.status === "closed" || item.status === "not-found" || item.status === "error") {
           card.classList.add("is-error");
+        }
+
+        if (item.status === "closed-temp") {
+          card.classList.add("is-duplicate");
         }
 
         const photoStyle = item.details?.photoReference
           ? `style="background-image: url('${getPhotoUrl(item.details.photoReference)}')"`
           : "";
 
-        const statusLabel =
-          item.status === "ready"
-            ? "ready"
-            : item.status === "duplicate"
-              ? "already listed"
-              : item.status === "not-found"
-                ? "not found"
-                : "error";
-
-        const statusClass =
-          item.status === "ready"
-            ? "is-ready"
-            : item.status === "duplicate"
-              ? "is-duplicate"
-              : "is-error";
+        const statusMeta = getStatusMeta(item);
+        const closureNote = item.details?.businessStatus
+          ? formatBusinessStatus(item.details.businessStatus)
+          : "";
 
         const bodyMarkup = item.details
           ? `
@@ -478,6 +518,7 @@
               <p class="import-preview-query">Searched: ${item.query}</p>
               <h2 class="listing-card-name">${item.details.name}</h2>
               <p class="listing-card-meta">${item.details.address}</p>
+              ${closureNote ? `<p class="listing-card-meta">${closureNote}</p>` : ""}
             </div>
           `
           : `
@@ -490,8 +531,8 @@
         card.innerHTML = `
           <div class="import-preview-header">
             <label class="import-preview-check">
-              <input type="checkbox" data-index="${index}" ${item.selected ? "checked" : ""} ${item.status !== "ready" ? "disabled" : ""}>
-              <span class="listing-status-badge ${statusClass}">${statusLabel}</span>
+              <input type="checkbox" data-index="${index}" ${item.selected ? "checked" : ""} ${item.status !== "ready" && item.status !== "closed-temp" ? "disabled" : ""}>
+              <span class="listing-status-badge ${statusMeta.className}">${statusMeta.label}</span>
             </label>
           </div>
           <div class="import-preview-body">${bodyMarkup}</div>
@@ -524,13 +565,21 @@
       const isDuplicate =
         existingPlaceIds.has(details.placeId) || existingSlugs.has(baseSlug);
 
-      return {
+      const item = {
         status: isDuplicate ? "duplicate" : "ready",
         query,
         details,
         slug: baseSlug,
         selected: !isDuplicate
       };
+
+      applyBusinessStatus(item, details.businessStatus);
+
+      if (item.status === "ready" || item.status === "closed-temp") {
+        item.selected = !isDuplicate;
+      }
+
+      return item;
     }
 
     loadMapBtn.addEventListener("click", async () => {
@@ -545,6 +594,7 @@
       loadMapBtn.textContent = "Loading map...";
       previewMode = "map";
       currentPage = 0;
+      checkStatusBtn.hidden = true;
       hideCardPreview();
 
       try {
@@ -572,7 +622,9 @@
         });
 
         const readyCount = previewItems.filter((item) => item.status === "ready").length;
-        importStatus.textContent = `${data.mapName}: ${readyCount} new spots ready to import`;
+        const closedCount = previewItems.filter((item) => item.status === "closed").length;
+        importStatus.textContent = `${data.mapName}: ${readyCount} new spots ready to import${closedCount ? ` (${closedCount} closed — run status check)` : ""}`;
+        checkStatusBtn.hidden = false;
         renderMapTable();
         showToast(`Loaded ${previewItems.length} pins from ${data.mapName}.`);
       } catch (error) {
@@ -586,8 +638,51 @@
       }
     });
 
+    checkStatusBtn.addEventListener("click", async () => {
+      const itemsToCheck = previewItems.filter(
+        (item) => item.status === "ready" || item.status === "closed-temp" || item.status === "closed"
+      );
+
+      if (!itemsToCheck.length) {
+        showToast("No places to check.", "muted");
+        return;
+      }
+
+      checkStatusBtn.disabled = true;
+      loadMapBtn.disabled = true;
+      checkStatusBtn.textContent = "Checking status...";
+
+      try {
+        for (let index = 0; index < itemsToCheck.length; index += 1) {
+          const item = itemsToCheck[index];
+          const result = await findPlaceStatus(item.name, item.lat, item.lng);
+          item.matchedName = result.matchedName;
+          item.googlePlaceId = result.placeId;
+          applyBusinessStatus(item, result.businessStatus);
+          importStatus.textContent = `Checking closure status: ${index + 1} / ${itemsToCheck.length}`;
+          await sleep(250);
+        }
+
+        const readyCount = previewItems.filter((item) => item.status === "ready").length;
+        const closedCount = previewItems.filter((item) => item.status === "closed").length;
+        importStatus.textContent = `${readyCount} ready to import · ${closedCount} permanently closed`;
+        renderMapTable();
+        showToast("Closure status check complete.");
+      } catch (error) {
+        console.error("Status check failed", error);
+        showToast("Status check failed. Check the console.", "muted");
+      } finally {
+        checkStatusBtn.disabled = false;
+        loadMapBtn.disabled = false;
+        checkStatusBtn.textContent = "Check closure status";
+        updateImportButtons();
+      }
+    });
+
     importMapBtn.addEventListener("click", async () => {
-      const toImport = previewItems.filter((item) => item.selected && item.status === "ready");
+      const toImport = previewItems.filter(
+        (item) => item.selected && (item.status === "ready" || item.status === "closed-temp")
+      );
 
       if (!toImport.length) {
         return;
@@ -605,6 +700,9 @@
         for (const item of toImport) {
           const slug = uniqueSlug(item.slug, reservedSlugs);
           const listing = buildListingFromMap(item, mapCity.value, slug, status);
+          if (item.googlePlaceId) {
+            listing.googlePlaceId = item.googlePlaceId;
+          }
           await setDoc(doc(db, "listings", slug), listing);
           existingCoords.push({ lat: item.lat, lng: item.lng });
           imported += 1;
@@ -667,7 +765,8 @@
         }
 
         const readyCount = previewItems.filter((item) => item.status === "ready").length;
-        importStatus.textContent = `${readyCount} of ${lines.length} ready to import`;
+        const closedCount = previewItems.filter((item) => item.status === "closed").length;
+        importStatus.textContent = `${readyCount} of ${lines.length} ready to import${closedCount ? ` · ${closedCount} closed permanently` : ""}`;
         renderSearchPreview();
       } catch (error) {
         console.error("Preview failed", error);
@@ -679,7 +778,9 @@
     });
 
     importBtn.addEventListener("click", async () => {
-      const toImport = previewItems.filter((item) => item.selected && item.status === "ready");
+      const toImport = previewItems.filter(
+        (item) => item.selected && (item.status === "ready" || item.status === "closed-temp")
+      );
 
       if (!toImport.length) {
         return;

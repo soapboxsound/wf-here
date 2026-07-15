@@ -16,8 +16,21 @@ module.exports = async (req, res) => {
   }
 
   if (action === "details") {
-    const fields = "name,formatted_address,geometry,opening_hours,photos,types,price_level,formatted_phone_number,website";
+    const fields = "name,formatted_address,geometry,opening_hours,photos,types,price_level,formatted_phone_number,website,business_status";
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}&sessiontoken=${sessionToken}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return res.status(200).json(data);
+  }
+
+  if (action === "findplace") {
+    const { lat, lng } = req.query;
+    const fields = "place_id,business_status,name";
+    const bias =
+      lat && lng
+        ? `&locationbias=circle:500@${encodeURIComponent(lat)},${encodeURIComponent(lng)}`
+        : "";
+    const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(input)}&inputtype=textquery&fields=${fields}&key=${API_KEY}${bias}`;
     const response = await fetch(url);
     const data = await response.json();
     return res.status(200).json(data);

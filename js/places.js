@@ -53,8 +53,54 @@ export async function getPlaceDetails(placeId, sessionToken) {
     photoAttribution,
     placeType,
     phone: result.formatted_phone_number || null,
-    website: result.website || null
+    website: result.website || null,
+    businessStatus: result.business_status || "OPERATIONAL"
   };
+}
+
+export async function findPlaceStatus(name, lat, lng) {
+  const params = new URLSearchParams({
+    action: "findplace",
+    input: name
+  });
+
+  if (lat) {
+    params.set("lat", String(lat));
+  }
+
+  if (lng) {
+    params.set("lng", String(lng));
+  }
+
+  const response = await fetch(`/api/places?${params}`);
+  const data = await response.json();
+  const candidate = data.candidates?.[0];
+
+  return {
+    businessStatus: candidate?.business_status || "UNKNOWN",
+    placeId: candidate?.place_id || "",
+    matchedName: candidate?.name || ""
+  };
+}
+
+export function isPermanentlyClosed(status = "") {
+  return status === "CLOSED_PERMANENTLY";
+}
+
+export function isTemporarilyClosed(status = "") {
+  return status === "CLOSED_TEMPORARILY";
+}
+
+export function formatBusinessStatus(status = "") {
+  if (status === "CLOSED_PERMANENTLY") {
+    return "closed permanently";
+  }
+
+  if (status === "CLOSED_TEMPORARILY") {
+    return "closed temporarily";
+  }
+
+  return "";
 }
 
 function stripPhotoAttribution(html = "") {
