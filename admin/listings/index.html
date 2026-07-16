@@ -71,6 +71,12 @@
       <button class="admin-filter-btn" type="button" data-chain="unique">Unique names only</button>
     </div>
 
+    <div class="admin-filters" id="duplicateFilters">
+      <button class="admin-filter-btn is-active" type="button" data-duplicate="all">All listings</button>
+      <button class="admin-filter-btn" type="button" data-duplicate="coords">Duplicate coordinates</button>
+      <button class="admin-filter-btn" type="button" data-duplicate="placeid">Duplicate Place IDs</button>
+    </div>
+
     <div class="admin-filters admin-neighborhood-filters" id="neighborhoodFilters"></div>
 
     <div class="import-actions admin-listings-actions">
@@ -83,7 +89,7 @@
   <script src="/js/main.js"></script>
   <script type="module" src="/js/nav-auth.js"></script>
   <script type="module">
-    import { getAdminListings, updateListing } from "/js/db.js";
+    import { deleteListing, getAdminListings, updateListing } from "/js/db.js";
 
     const NEEDS_NEIGHBORHOOD = "Needs neighborhood";
     const NEIGHBORHOOD_BATCH_SIZE = 20;
@@ -94,6 +100,7 @@
     const cityFilters = document.getElementById("cityFilters");
     const statusFilters = document.getElementById("statusFilters");
     const chainFilters = document.getElementById("chainFilters");
+    const duplicateFilters = document.getElementById("duplicateFilters");
     const neighborhoodFilters = document.getElementById("neighborhoodFilters");
     const fillNeighborhoodsBtn = document.getElementById("fillNeighborhoodsBtn");
 
@@ -104,9 +111,12 @@
 
     let listings = [];
     let nameCounts = new Map();
+    let coordCounts = new Map();
+    let placeIdCounts = new Map();
     let activeCity = "all";
     let activeStatus = "unpublished";
     let activeChain = "all";
+    let activeDuplicate = "all";
     let activeNeighborhood = "all";
 
     function formatType(type = "") {
@@ -123,20 +133,41 @@
         .trim();
     }
 
+    function coordKey(listing) {
+      const lat = Number(listing.lat);
+      const lng = Number(listing.lng);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) {
+        return "";
+      }
+
+      return `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    }
+
     function neighborhoodLabel(listing) {
       return (listing.neighborhood || "").trim() || NEEDS_NEIGHBORHOOD;
     }
 
     function rebuildNameCounts() {
       nameCounts = new Map();
+      coordCounts = new Map();
+      placeIdCounts = new Map();
 
       listings.forEach((listing) => {
-        const key = normalizeName(listing.name);
-        if (!key) {
-          return;
+        const nameKey = normalizeName(listing.name);
+        if (nameKey) {
+          nameCounts.set(nameKey, (nameCounts.get(nameKey) || 0) + 1);
         }
 
-        nameCounts.set(key, (nameCounts.get(key) || 0) + 1);
+        const coords = coordKey(listing);
+        if (coords) {
+          coordCounts.set(coords, (coordCounts.get(coords) || 0) + 1);
+        }
+
+        const placeId = (listing.googlePlaceId || "").trim();
+        if (placeId) {
+          placeIdCounts.set(placeId, (placeIdCounts.get(placeId) || 0) + 1);
+        }
       });
     }
 
@@ -146,6 +177,36 @@
 
     function isChain(listing) {
       return getChainCount(listing) > 1;
+    }
+
+    function getCoordDuplicateCount(listing) {
+      const key = coordKey(listing);
+      return key ? coordCounts.get(key) || 1 : 1;
+    }
+
+    function isCoordDuplicate(listing) {
+      return getCoordDuplicateCount(listing) > 1;
+    }
+
+    function getPlaceIdDuplicateCount(listing) {
+      const placeId = (listing.googlePlaceId || "").trim();
+      return placeId ? placeIdCounts.get(placeId) || 1 : 1;
+    }
+
+    function isPlaceIdDuplicate(listing) {
+      return getPlaceIdDuplicateCount(listing) > 1;
+    }
+
+    function isDuplicateMatch(listing) {
+      if (activeDuplicate === "coords") {
+        return isCoordDuplicate(listing);
+      }
+
+      if (activeDuplicate === "placeid") {
+        return isPlaceIdDuplicate(listing);
+      }
+
+      return true;
     }
 
     function showToast(message, type = "success") {
@@ -178,7 +239,7 @@
           activeNeighborhood === "all" ||
           neighborhoodLabel(listing) === activeNeighborhood;
 
-        return chainMatch && neighborhoodMatch;
+        return chainMatch && neighborhoodMatch && isDuplicateMatch(listing);
       });
     }
 
@@ -195,6 +256,11 @@
 
       groups.forEach((items) => {
         items.sort((a, b) => {
+          const coordDupDiff = Number(isCoordDuplicate(b)) - Number(isCoordDuplicate(a));
+          if (coordDupDiff) {
+            return coordDupDiff;
+          }
+
           const chainDiff = Number(isChain(b)) - Number(isChain(a));
           if (chainDiff) {
             return chainDiff;
@@ -217,15 +283,41 @@
       });
     }
 
+    function groupByDuplicateKey(filtered) {
+      const groups = new Map();
+
+      filtered.forEach((listing) => {
+        const key =
+          activeDuplicate === "placeid"
+            ? (listing.googlePlaceId || "").trim() || "No Place ID"
+            : coordKey(listing) || "No coordinates";
+
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key).push(listing);
+      });
+
+      groups.forEach((items) => {
+        items.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      });
+
+      return Array.from(groups.entries()).sort(([, aItems], [, bItems]) => {
+        return bItems.length - aItems.length || (aItems[0]?.name || "").localeCompare(bItems[0]?.name || "");
+      });
+    }
+
     function updateCount() {
       const filtered = getFilteredListings();
       const chainCount = filtered.filter(isChain).length;
+      const coordDupCount = filtered.filter(isCoordDuplicate).length;
       const missingNeighborhood = filtered.filter(
         (listing) => !listing.neighborhood?.trim()
       ).length;
 
       listingsCount.textContent = `${filtered.length} listing${filtered.length === 1 ? "" : "s"}`;
       listingsSummary.textContent = [
+        `${coordDupCount} with duplicate coordinates`,
         `${chainCount} possible chain spot${chainCount === 1 ? "" : "s"}`,
         `${missingNeighborhood} missing neighborhood`
       ].join(" · ");
@@ -233,11 +325,12 @@
 
     function renderNeighborhoodFilterButtons() {
       const baseListings = getCityStatusFiltered().filter((listing) => {
-        return (
+        const chainMatch =
           activeChain === "all" ||
           (activeChain === "chains" && isChain(listing)) ||
-          (activeChain === "unique" && !isChain(listing))
-        );
+          (activeChain === "unique" && !isChain(listing));
+
+        return chainMatch && isDuplicateMatch(listing);
       });
 
       const counts = new Map();
@@ -263,6 +356,11 @@
       }
 
       neighborhoodFilters.innerHTML = "";
+      neighborhoodFilters.hidden = activeDuplicate !== "all";
+
+      if (activeDuplicate !== "all") {
+        return;
+      }
 
       const allButton = document.createElement("button");
       allButton.className = `admin-filter-btn ${activeNeighborhood === "all" ? "is-active" : ""}`;
@@ -301,14 +399,23 @@
       }
 
       listingsList.innerHTML = "";
-      const groups = groupByNeighborhood(filtered);
+      const groups =
+        activeDuplicate === "all" ? groupByNeighborhood(filtered) : groupByDuplicateKey(filtered);
 
-      groups.forEach(([neighborhood, items]) => {
+      groups.forEach(([groupName, items]) => {
         const section = document.createElement("section");
         section.className = "admin-neighborhood-section";
+
+        const headingLabel =
+          activeDuplicate === "coords"
+            ? `Coordinates ${groupName}`
+            : activeDuplicate === "placeid"
+              ? `Place ID ${groupName}`
+              : groupName;
+
         section.innerHTML = `
           <div class="admin-neighborhood-heading">
-            <h2>${neighborhood}</h2>
+            <h2>${headingLabel}</h2>
             <span>${items.length} spot${items.length === 1 ? "" : "s"}</span>
           </div>
         `;
@@ -341,6 +448,10 @@
         card.classList.add("is-chain");
       }
 
+      if (isCoordDuplicate(listing) || isPlaceIdDuplicate(listing)) {
+        card.classList.add("is-duplicate-listing");
+      }
+
       const isPublished = listing.status === "approved";
       const statusClass = isPublished ? "is-approved" : "is-unpublished";
       const statusLabel = isPublished ? "published" : "unpublished";
@@ -348,6 +459,14 @@
       const chainCount = getChainCount(listing);
       const chainBadge = chainCount > 1
         ? `<span class="listing-chain-badge" title="Same name appears ${chainCount} times across all listings">chain · ${chainCount} locations</span>`
+        : "";
+      const coordDupCount = getCoordDuplicateCount(listing);
+      const coordDupBadge = coordDupCount > 1
+        ? `<span class="listing-duplicate-badge" title="Exact same coordinates as ${coordDupCount - 1} other listing(s)">duplicate coords · ${coordDupCount}</span>`
+        : "";
+      const placeIdDupCount = getPlaceIdDuplicateCount(listing);
+      const placeIdDupBadge = placeIdDupCount > 1
+        ? `<span class="listing-duplicate-badge" title="Same Google Place ID as ${placeIdDupCount - 1} other listing(s)">duplicate Place ID · ${placeIdDupCount}</span>`
         : "";
       const coordsLabel = listing.lat && listing.lng ? `${listing.lat}, ${listing.lng}` : "No coordinates";
 
@@ -357,11 +476,14 @@
             <div class="listing-card-title-row">
               <h2 class="listing-card-name">${listing.name || "Untitled listing"}</h2>
               <span class="listing-status-badge ${statusClass}">${statusLabel}</span>
+              ${coordDupBadge}
+              ${placeIdDupBadge}
               ${chainBadge}
               ${featuredBadge}
             </div>
             <p class="listing-card-meta">${formatType(listing.type)} · ${listing.neighborhood || "—"} · ${cityLabels[listing.city] || listing.city}</p>
             <p class="listing-card-meta">${listing.address || "—"} · ${coordsLabel}</p>
+            <p class="listing-card-meta">slug: ${listing.slug || "—"}</p>
           </div>
         </div>
         <div class="listing-card-actions">
@@ -373,6 +495,7 @@
             ${isPublished ? "Unpublish" : "Publish"}
           </button>
           <button class="listing-btn listing-btn-edit" type="button" data-action="edit">Edit</button>
+          <button class="listing-btn listing-btn-delete" type="button" data-action="delete">Delete</button>
         </div>
         <div class="listing-edit-panel" data-edit-panel>
           <div class="listing-edit-grid">
@@ -450,6 +573,33 @@
 
       card.querySelector('[data-action="edit"]').addEventListener("click", () => {
         editPanel.classList.toggle("is-open");
+      });
+
+      card.querySelector('[data-action="delete"]').addEventListener("click", async () => {
+        const confirmed = window.confirm(
+          `Delete “${listing.name || listing.slug}”? This cannot be undone.`
+        );
+
+        if (!confirmed) {
+          return;
+        }
+
+        const deleteButton = card.querySelector('[data-action="delete"]');
+        deleteButton.disabled = true;
+        deleteButton.textContent = "Deleting...";
+
+        try {
+          await deleteListing(listing.id);
+          listings = listings.filter((item) => item.id !== listing.id);
+          rebuildNameCounts();
+          renderListings();
+          showToast("Listing deleted.");
+        } catch (error) {
+          console.error("Failed to delete listing", error);
+          showToast("Could not delete listing.", "muted");
+          deleteButton.disabled = false;
+          deleteButton.textContent = "Delete";
+        }
       });
 
       card.querySelector('[data-action="cancel-edit"]').addEventListener("click", () => {
@@ -545,6 +695,18 @@
       activeChain = button.dataset.chain;
       activeNeighborhood = "all";
       setActiveFilter(chainFilters, button);
+      renderListings();
+    });
+
+    duplicateFilters.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-duplicate]");
+      if (!button) {
+        return;
+      }
+
+      activeDuplicate = button.dataset.duplicate;
+      activeNeighborhood = "all";
+      setActiveFilter(duplicateFilters, button);
       renderListings();
     });
 

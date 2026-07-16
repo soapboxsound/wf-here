@@ -67,6 +67,10 @@ export async function updateListing(listingId, data) {
   return updateDoc(doc(db, "listings", listingId), data);
 }
 
+export async function deleteListing(listingId) {
+  return deleteDoc(doc(db, "listings", listingId));
+}
+
 export async function getListing(slug) {
   if (!slug) {
     return null;

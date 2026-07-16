@@ -3200,12 +3200,34 @@
   border-color: #b45309;
 }
 
+.listing-card.is-duplicate-listing {
+  border-color: var(--color-danger);
+}
+
 .listing-chain-badge {
   padding: 2px 8px;
   border-radius: var(--radius-full);
   background: #fff7ed;
   color: #b45309;
   font-size: var(--text-xs);
+}
+
+.listing-duplicate-badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: #fef2f2;
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+}
+
+.listing-btn-delete {
+  border: var(--border-hairline);
+  background: transparent;
+  color: var(--color-danger);
+}
+
+.listing-btn-delete:hover {
+  background: #fef2f2;
 }
 
 .admin-listings-actions {
