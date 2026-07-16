@@ -37,18 +37,74 @@ function formatOutlets(outlets = "") {
   return outlets === "plenty" ? "outlets" : outlets;
 }
 
-function formatHoursForCard(hours = "") {
+function getGoogleWeekdayIndex(date = new Date()) {
+  // Google weekday_text is Monday-first; JS getDay() is Sunday-first.
+  const jsDay = date.getDay();
+  return jsDay === 0 ? 6 : jsDay - 1;
+}
+
+function formatHoursForCard(hours = "", date = new Date()) {
   if (!hours) {
     return "";
   }
 
-  const firstLine = hours.split("\n")[0].replace(/\s*·\s*/g, ", ").trim();
+  const dayNames = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday"
+  ];
+  const todayIndex = getGoogleWeekdayIndex(date);
+  const todayName = dayNames[todayIndex];
+  const lines = hours
+    .split(/\n|·/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-  if (firstLine.length <= 42) {
-    return firstLine;
+  if (!lines.length) {
+    return "";
   }
 
-  return `${firstLine.slice(0, 39).trim()}…`;
+  let todayLine =
+    lines.find((line) => line.toLowerCase().startsWith(`${todayName}:`)) ||
+    lines.find((line) => line.toLowerCase().startsWith(todayName));
+
+  if (!todayLine && lines.length === 7) {
+    todayLine = lines[todayIndex];
+  }
+
+  // Freeform hours without day labels (e.g. "7am - 6pm daily") — keep as-is.
+  if (!todayLine) {
+    const hasDayLabels = lines.some((line) =>
+      dayNames.some((day) => line.toLowerCase().includes(day))
+    );
+
+    if (!hasDayLabels) {
+      todayLine = lines[0];
+    } else {
+      return "";
+    }
+  }
+
+  let value = todayLine.replace(/^[A-Za-z]+day:\s*/i, "").trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (/^closed$/i.test(value)) {
+    return "Closed today";
+  }
+
+  if (/daily|every day|24\s*hrs?|open 24/i.test(todayLine) && !todayLine.toLowerCase().includes(todayName)) {
+    return value.length <= 42 ? value : `${value.slice(0, 39).trim()}…`;
+  }
+
+  const label = value.length <= 36 ? value : `${value.slice(0, 33).trim()}…`;
+  return `Today ${label}`;
 }
 
 function deriveAttributes(spot) {
