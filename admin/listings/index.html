@@ -91,9 +91,10 @@
   <script type="module" src="/js/nav-auth.js"></script>
   <script type="module">
     import { deleteListing, getAdminListings, updateListing } from "/js/db.js";
+    import { generateSessionToken, getPlaceDetails } from "/js/places.js";
 
     const NEEDS_NEIGHBORHOOD = "Needs neighborhood";
-    const NEIGHBORHOOD_BATCH_SIZE = 20;
+    const NEIGHBORHOOD_BATCH_SIZE = 5;
 
     const listingsCount = document.getElementById("listingsCount");
     const listingsSummary = document.getElementById("listingsSummary");
@@ -778,6 +779,29 @@
       return data.results || [];
     }
 
+    async function enrichListingNeighborhood(listing) {
+      if (listing.googlePlaceId) {
+        try {
+          const details = await getPlaceDetails(listing.googlePlaceId, generateSessionToken());
+          return {
+            neighborhood: (details.neighborhood || "").trim(),
+            address: (details.address || "").trim(),
+            source: "places"
+          };
+        } catch (error) {
+          console.warn("Places neighborhood lookup failed", listing.name, error);
+        }
+      }
+
+      const [result] = await reverseGeocodeBatch([{ lat: listing.lat, lng: listing.lng }]);
+      return {
+        neighborhood: (result?.neighborhood || "").trim(),
+        address: (result?.address || "").trim(),
+        source: result?.provider || "geocode",
+        error: result?.error || ""
+      };
+    }
+
     cityFilters.addEventListener("click", (event) => {
       const button = event.target.closest("[data-city]");
       if (!button) {
@@ -847,18 +871,99 @@
       }
 
       fillNeighborhoodsBtn.disabled = true;
+      deleteCoordDupesBtn.disabled = true;
       fillNeighborhoodsBtn.textContent = "Filling neighborhoods...";
       listingsSummary.textContent = `Filling neighborhoods: 0 / ${targets.length}`;
 
       let filled = 0;
+      let skipped = 0;
+      let failed = 0;
       let lastError = "";
 
       try {
-        for (let start = 0; start < targets.length; start += NEIGHBORHOOD_BATCH_SIZE) {
-          const chunk = targets.slice(start, start + NEIGHBORHOOD_BATCH_SIZE);
-          const results = await reverseGeocodeBatch(
-            chunk.map((listing) => ({ lat: listing.lat, lng: listing.lng }))
-          );
+        const withPlaceId = targets.filter((listing) => listing.googlePlaceId);
+        const withoutPlaceId = targets.filter((listing) => !listing.googlePlaceId);
+
+        for (let index = 0; index < withPlaceId.length; index += 1) {
+          const listing = withPlaceId[index];
+          listingsSummary.textContent = `Filling from Google Places: ${index + 1} / ${withPlaceId.length} · ${filled} saved`;
+
+          try {
+            const result = await enrichListingNeighborhood(listing);
+            const updates = {};
+
+            if (result.neighborhood) {
+              updates.neighborhood = result.neighborhood;
+            }
+            if (result.address && !listing.address) {
+              updates.address = result.address;
+            }
+
+            if (!Object.keys(updates).length) {
+              skipped += 1;
+              continue;
+            }
+
+            await updateListing(listing.id, updates);
+            Object.assign(listing, updates);
+            filled += 1;
+          } catch (error) {
+            console.error("Neighborhood fill failed for listing", listing.id, error);
+            failed += 1;
+            lastError = error.message || lastError;
+          }
+
+          if ((index + 1) % 10 === 0) {
+            activeNeighborhood = "all";
+            renderListings();
+          }
+        }
+
+        for (let start = 0; start < withoutPlaceId.length; start += NEIGHBORHOOD_BATCH_SIZE) {
+          const chunk = withoutPlaceId.slice(start, start + NEIGHBORHOOD_BATCH_SIZE);
+          listingsSummary.textContent = `Filling from map coords: ${Math.min(start + chunk.length, withoutPlaceId.length)} / ${withoutPlaceId.length} · ${filled} saved`;
+
+          let results = [];
+
+          try {
+            results = await reverseGeocodeBatch(
+              chunk.map((listing) => ({ lat: listing.lat, lng: listing.lng }))
+            );
+          } catch (error) {
+            console.error("Reverse geocode batch failed", error);
+            lastError = error.message || lastError;
+            failed += chunk.length;
+
+            // Fall back to one-at-a-time so one bad batch doesn't stop the run.
+            for (const listing of chunk) {
+              try {
+                const result = await enrichListingNeighborhood(listing);
+                const updates = {};
+                if (result.neighborhood) {
+                  updates.neighborhood = result.neighborhood;
+                }
+                if (result.address && !listing.address) {
+                  updates.address = result.address;
+                }
+                if (!Object.keys(updates).length) {
+                  skipped += 1;
+                  failed -= 1;
+                  continue;
+                }
+                await updateListing(listing.id, updates);
+                Object.assign(listing, updates);
+                filled += 1;
+                failed -= 1;
+              } catch (itemError) {
+                console.error("Single neighborhood fill failed", listing.id, itemError);
+                lastError = itemError.message || lastError;
+              }
+            }
+
+            activeNeighborhood = "all";
+            renderListings();
+            continue;
+          }
 
           for (let index = 0; index < chunk.length; index += 1) {
             const listing = chunk[index];
@@ -868,9 +973,12 @@
 
             if (result.error && !neighborhood && !address) {
               lastError = result.error;
+              skipped += 1;
+              continue;
             }
 
             if (!neighborhood && !address) {
+              skipped += 1;
               continue;
             }
 
@@ -883,25 +991,38 @@
             }
 
             if (!Object.keys(updates).length) {
+              skipped += 1;
               continue;
             }
 
-            await updateListing(listing.id, updates);
-            Object.assign(listing, updates);
-            filled += 1;
+            try {
+              await updateListing(listing.id, updates);
+              Object.assign(listing, updates);
+              filled += 1;
+            } catch (error) {
+              console.error("Failed to save neighborhood", listing.id, error);
+              failed += 1;
+              lastError = error.message || lastError;
+            }
           }
 
-          listingsSummary.textContent = `Filling neighborhoods: ${Math.min(start + chunk.length, targets.length)} / ${targets.length}`;
           activeNeighborhood = "all";
           renderListings();
-          await new Promise((resolve) => window.setTimeout(resolve, 1100));
         }
 
         activeNeighborhood = "all";
         renderListings();
 
+        const summary = [
+          `Filled ${filled}`,
+          skipped ? `${skipped} skipped` : "",
+          failed ? `${failed} failed` : ""
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
         if (filled) {
-          showToast(`Filled neighborhoods for ${filled} listing${filled === 1 ? "" : "s"}.`);
+          showToast(summary);
         } else {
           showToast(lastError ? `Could not fill neighborhoods (${lastError}).` : "No neighborhoods found.", "muted");
         }
@@ -910,6 +1031,7 @@
         showToast(error.message || "Neighborhood fill failed.", "muted");
       } finally {
         fillNeighborhoodsBtn.disabled = false;
+        deleteCoordDupesBtn.disabled = false;
         fillNeighborhoodsBtn.textContent = "Fill missing neighborhoods";
         updateCount();
       }

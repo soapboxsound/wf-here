@@ -1,7 +1,12 @@
 const fetch = require("node-fetch");
 
-const BATCH_LIMIT = 40;
-const BATCH_CONCURRENCY = 2;
+const BATCH_LIMIT = 10;
+const BATCH_CONCURRENCY = 1;
+const NOMINATIM_GAP_MS = 1100;
+
+let lastNominatimAt = 0;
+let skipGoogle = false;
+let skipMapbox = false;
 
 async function mapPool(items, limit, worker) {
   const results = new Array(items.length);
@@ -20,6 +25,10 @@ async function mapPool(items, limit, worker) {
   );
 
   return results;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function parseBatchBody(req) {
@@ -56,6 +65,15 @@ const NYC_BOROUGHS = new Set([
   "staten island"
 ]);
 
+const CITY_SCALE = new Set([
+  ...NYC_BOROUGHS,
+  "new york",
+  "nyc",
+  "new york city",
+  "los angeles",
+  "la"
+]);
+
 function refineNeighborhood(candidate = "", address = {}, displayName = "") {
   const preferred = [
     address.neighbourhood,
@@ -63,13 +81,13 @@ function refineNeighborhood(candidate = "", address = {}, displayName = "") {
     address.suburb,
     address.quarter,
     address.city_district
-  ].find((value) => value && !NYC_BOROUGHS.has(value.toLowerCase()));
+  ].find((value) => value && !CITY_SCALE.has(value.toLowerCase()));
 
   if (preferred) {
     return preferred;
   }
 
-  if (candidate && !NYC_BOROUGHS.has(candidate.toLowerCase())) {
+  if (candidate && !CITY_SCALE.has(candidate.toLowerCase())) {
     return candidate;
   }
 
@@ -81,19 +99,40 @@ function refineNeighborhood(candidate = "", address = {}, displayName = "") {
 
     if (boroughIndex > 0) {
       const before = parts[boroughIndex - 1];
-      if (before && !/^\d/.test(before) && before.length > 2 && !/avenue|street|road|blvd/i.test(before)) {
+      if (
+        before &&
+        !/^\d/.test(before) &&
+        before.length > 2 &&
+        !/avenue|street|road|blvd|board/i.test(before)
+      ) {
         return before;
       }
     }
   }
 
-  return candidate || preferred || "";
+  return preferred || "";
+}
+
+function refineGoogleNeighborhood(neighborhood = "", borough = "") {
+  if (neighborhood && !CITY_SCALE.has(neighborhood.toLowerCase())) {
+    return neighborhood;
+  }
+
+  if (borough && !CITY_SCALE.has(borough.toLowerCase())) {
+    return borough;
+  }
+
+  return neighborhood && !CITY_SCALE.has(neighborhood.toLowerCase()) ? neighborhood : "";
 }
 
 async function reverseGeocodeGoogle(lat, lng, apiKey) {
   const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(lat)},${encodeURIComponent(lng)}&key=${apiKey}`;
   const response = await fetch(url);
   const data = await response.json();
+
+  if (data.status === "REQUEST_DENIED" || data.status === "OVER_QUERY_LIMIT") {
+    skipGoogle = true;
+  }
 
   if (data.status !== "OK" || !data.results?.length) {
     return {
@@ -115,9 +154,13 @@ async function reverseGeocodeGoogle(lat, lng, apiKey) {
     return match?.long_name || "";
   };
 
+  const neighborhood = get("neighborhood");
+  const sublocality = get("sublocality", "sublocality_level_1");
+  const borough = sublocality || get("political");
+
   return {
-    neighborhood: get("neighborhood", "sublocality", "sublocality_level_1") || get("locality"),
-    borough: get("sublocality_level_1", "political"),
+    neighborhood: refineGoogleNeighborhood(neighborhood || sublocality, borough),
+    borough,
     address: result.formatted_address || "",
     provider: "google"
   };
@@ -129,6 +172,10 @@ async function reverseGeocodeMapbox(lat, lng, token) {
   const data = await response.json();
 
   if (data.message) {
+    if (/token|forbidden|unauthorized|url/i.test(data.message)) {
+      skipMapbox = true;
+    }
+
     return {
       neighborhood: "",
       address: "",
@@ -151,14 +198,15 @@ async function reverseGeocodeMapbox(lat, lng, token) {
   );
 
   const context = neighborhoodFeature?.context || addressFeature?.context || [];
+  const neighborhood =
+    neighborhoodFeature?.text ||
+    pickContextName(context, "neighborhood") ||
+    localityFeature?.text ||
+    pickContextName(context, "locality") ||
+    "";
 
   return {
-    neighborhood:
-      neighborhoodFeature?.text ||
-      pickContextName(context, "neighborhood") ||
-      localityFeature?.text ||
-      pickContextName(context, "locality") ||
-      "",
+    neighborhood: CITY_SCALE.has(neighborhood.toLowerCase()) ? "" : neighborhood,
     borough: pickContextName(context, "locality") || pickContextName(context, "place") || "",
     address: addressFeature?.place_name || neighborhoodFeature?.place_name || "",
     provider: "mapbox"
@@ -166,6 +214,13 @@ async function reverseGeocodeMapbox(lat, lng, token) {
 }
 
 async function reverseGeocodeNominatim(lat, lng) {
+  const waitFor = Math.max(0, NOMINATIM_GAP_MS - (Date.now() - lastNominatimAt));
+  if (waitFor) {
+    await sleep(waitFor);
+  }
+
+  lastNominatimAt = Date.now();
+
   const url = `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&format=jsonv2&addressdetails=1&zoom=18`;
   const response = await fetch(url, {
     headers: {
@@ -210,19 +265,19 @@ async function reverseGeocode(lat, lng, { googleKey, mapboxToken }) {
 
   const attempts = [];
 
-  if (googleKey) {
-    try {
-      const googleResult = await reverseGeocodeGoogle(lat, lng, googleKey);
-      attempts.push(googleResult);
-      if (googleResult.neighborhood || googleResult.address) {
-        return googleResult;
-      }
-    } catch (error) {
-      attempts.push({ provider: "google", error: error.message });
+  // Nominatim first: Google Geocoding is often not enabled, Mapbox public tokens
+  // are frequently URL-restricted and fail from the server.
+  try {
+    const nominatimResult = await reverseGeocodeNominatim(lat, lng);
+    if (nominatimResult.neighborhood || nominatimResult.address) {
+      return nominatimResult;
     }
+    attempts.push(nominatimResult);
+  } catch (error) {
+    attempts.push({ provider: "nominatim", error: error.message });
   }
 
-  if (mapboxToken) {
+  if (mapboxToken && !skipMapbox) {
     try {
       const mapboxResult = await reverseGeocodeMapbox(lat, lng, mapboxToken);
       attempts.push(mapboxResult);
@@ -234,14 +289,16 @@ async function reverseGeocode(lat, lng, { googleKey, mapboxToken }) {
     }
   }
 
-  try {
-    const nominatimResult = await reverseGeocodeNominatim(lat, lng);
-    if (nominatimResult.neighborhood || nominatimResult.address) {
-      return nominatimResult;
+  if (googleKey && !skipGoogle) {
+    try {
+      const googleResult = await reverseGeocodeGoogle(lat, lng, googleKey);
+      attempts.push(googleResult);
+      if (googleResult.neighborhood || googleResult.address) {
+        return googleResult;
+      }
+    } catch (error) {
+      attempts.push({ provider: "google", error: error.message });
     }
-    attempts.push(nominatimResult);
-  } catch (error) {
-    attempts.push({ provider: "nominatim", error: error.message });
   }
 
   return {
@@ -256,10 +313,7 @@ module.exports = async (req, res) => {
   const googleKey = process.env.GOOGLE_PLACES_API_KEY || "";
   const mapboxToken = process.env.VITE_MAPBOX_TOKEN || process.env.MAPBOX_TOKEN || "";
 
-  if (!googleKey && !mapboxToken) {
-    return res.status(500).json({ error: "No geocoding API key configured." });
-  }
-
+  // Nominatim works without keys; keep endpoint available even if keys are missing.
   if (req.method === "POST") {
     let places = [];
 
