@@ -3196,6 +3196,61 @@
   opacity: 0.72;
 }
 
+.listing-card.is-chain {
+  border-color: #b45309;
+}
+
+.listing-chain-badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: #fff7ed;
+  color: #b45309;
+  font-size: var(--text-xs);
+}
+
+.admin-listings-actions {
+  margin: 0 0 1.25rem;
+}
+
+.admin-neighborhood-filters {
+  margin-bottom: 0.75rem;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.admin-neighborhood-section {
+  margin-bottom: 2rem;
+}
+
+.admin-neighborhood-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: var(--border-hairline);
+}
+
+.admin-neighborhood-heading h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.2px;
+}
+
+.admin-neighborhood-heading span {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.admin-neighborhood-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .listing-card-header {
   display: flex;
   flex-wrap: wrap;
