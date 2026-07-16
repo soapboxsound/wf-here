@@ -241,7 +241,7 @@
         city,
         type: googleTypeMap[details.placeType] || "other",
         address: details.address,
-        neighborhood: "",
+        neighborhood: details.neighborhood || "",
         lat: details.lat || 0,
         lng: details.lng || 0,
         googlePlaceId: details.placeId,
@@ -276,14 +276,14 @@
         slug,
         city,
         type: "cafe",
-        address: "",
-        neighborhood: "",
+        address: place.address || "",
+        neighborhood: place.neighborhood || "",
         lat: place.lat,
         lng: place.lng,
-        googlePlaceId: "",
-        googlePhotoRef: "",
-        googlePhotoRefs: [],
-        googlePhotoAttribution: "",
+        googlePlaceId: place.googlePlaceId || "",
+        googlePhotoRef: place.googlePhotoRef || "",
+        googlePhotoRefs: place.googlePhotoRefs || [],
+        googlePhotoAttribution: place.googlePhotoAttribution || "",
         status,
         featured: false,
         wifiNetwork: "",
@@ -294,7 +294,7 @@
         outlets: "",
         food: "",
         seating: [],
-        hours: "",
+        hours: place.hours || "",
         costToSit: "",
         bathroom: false,
         bathroomCode: "",
@@ -304,6 +304,57 @@
         notes: place.description || "",
         submittedBy: "admin-mymaps"
       };
+    }
+
+    async function reverseGeocodePlace(lat, lng) {
+      const response = await fetch(
+        `/api/reverse-geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { neighborhood: "", address: "" };
+      }
+
+      return {
+        neighborhood: data.neighborhood || "",
+        address: data.address || ""
+      };
+    }
+
+    async function enrichMapItem(item) {
+      if (item.neighborhood && item.address) {
+        return item;
+      }
+
+      if (item.googlePlaceId) {
+        try {
+          sessionToken = generateSessionToken();
+          const details = await getPlaceDetails(item.googlePlaceId, sessionToken);
+          sessionToken = generateSessionToken();
+
+          item.neighborhood = details.neighborhood || item.neighborhood || "";
+          item.address = details.address || item.address || "";
+          item.hours = details.hours ? details.hours.replace(/\n/g, " · ") : item.hours || "";
+          item.googlePhotoRef = details.photoReference || "";
+          item.googlePhotoRefs = details.photoReferences || [];
+          item.googlePhotoAttribution = details.photoAttribution || "";
+          if (details.placeType) {
+            item.placeType = details.placeType;
+          }
+          return item;
+        } catch (error) {
+          console.warn("Could not enrich map item from Google Places", item.name, error);
+        }
+      }
+
+      if (item.lat && item.lng) {
+        const geo = await reverseGeocodePlace(item.lat, item.lng);
+        item.neighborhood = item.neighborhood || geo.neighborhood || "";
+        item.address = item.address || geo.address || "";
+      }
+
+      return item;
     }
 
     function resetExistingListingsCache() {
@@ -748,16 +799,18 @@
 
       try {
         for (const item of toImport) {
+          await enrichMapItem(item);
           const slug = uniqueSlug(item.slug, reservedSlugs);
           const listing = buildListingFromMap(item, mapCity.value, slug, status);
-          if (item.googlePlaceId) {
-            listing.googlePlaceId = item.googlePlaceId;
+          if (item.placeType && googleTypeMap[item.placeType]) {
+            listing.type = googleTypeMap[item.placeType];
           }
           await setDoc(doc(db, "listings", slug), listing);
           existingCoords.push({ lat: item.lat, lng: item.lng });
           imported += 1;
           item.status = "imported";
           item.selected = false;
+          importStatus.textContent = `Importing: ${imported} / ${toImport.length}`;
         }
 
         importStatus.textContent = `Imported ${imported} spot${imported === 1 ? "" : "s"} as ${status}`;

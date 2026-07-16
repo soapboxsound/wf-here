@@ -1,7 +1,46 @@
 const IGNORED_PLACE_TYPES = new Set(["point_of_interest", "establishment"]);
 
+const CITY_SCALE_LOCALITIES = new Set([
+  "new york",
+  "nyc",
+  "new york city",
+  "los angeles",
+  "la",
+  "manhattan",
+  "brooklyn",
+  "queens",
+  "bronx",
+  "the bronx",
+  "staten island"
+]);
+
 export function generateSessionToken() {
   return crypto.randomUUID();
+}
+
+function getAddressComponent(components = [], ...types) {
+  const match = components.find((component) =>
+    types.some((type) => (component.types || []).includes(type))
+  );
+  return match?.long_name || "";
+}
+
+export function extractNeighborhood(addressComponents = []) {
+  const neighborhood = getAddressComponent(addressComponents, "neighborhood");
+  const sublocality = getAddressComponent(
+    addressComponents,
+    "sublocality",
+    "sublocality_level_1"
+  );
+  const locality = getAddressComponent(addressComponents, "locality");
+
+  const candidates = [neighborhood, sublocality, locality].filter(Boolean);
+
+  const specific = candidates.find(
+    (value) => !CITY_SCALE_LOCALITIES.has(value.toLowerCase())
+  );
+
+  return specific || neighborhood || sublocality || "";
 }
 
 export async function autocomplete(input, sessionToken) {
@@ -44,6 +83,7 @@ export async function getPlaceDetails(placeId, sessionToken) {
     placeId,
     name: result.name || "",
     address: result.formatted_address || "",
+    neighborhood: extractNeighborhood(result.address_components || []),
     lat: result.geometry?.location?.lat ?? 0,
     lng: result.geometry?.location?.lng ?? 0,
     hours: result.opening_hours?.weekday_text?.join("\n") || null,

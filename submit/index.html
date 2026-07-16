@@ -137,7 +137,7 @@
       <section class="form-step" data-step="2">
         <div class="form-field">
           <label class="form-label" for="placeNeighborhood">Neighborhood</label>
-          <input class="form-input" id="placeNeighborhood" type="text" placeholder="e.g. Lower East Side">
+          <input class="form-input" id="placeNeighborhood" type="text" placeholder="Auto-filled from Google, or type manually">
         </div>
 
         <div class="form-field">
@@ -455,6 +455,7 @@
         }
 
         document.getElementById("placeCity").value = inferCityFromAddress(details.address);
+        document.getElementById("placeNeighborhood").value = details.neighborhood || "";
         setPlaceTypeFromGoogle(details.placeType);
         placePreview.classList.add("is-visible");
         placeSearchReset.hidden = false;
@@ -716,7 +717,7 @@
         googlePhotoAttribution: isManualEntry ? "" : selectedPlace?.photoAttribution || "",
         phone: isManualEntry ? "" : selectedPlace?.phone || "",
         website: isManualEntry ? "" : selectedPlace?.website || "",
-        neighborhood: document.getElementById("placeNeighborhood").value.trim(),
+        neighborhood: document.getElementById("placeNeighborhood").value.trim() || selectedPlace?.neighborhood || "",
         hours: document.getElementById("placeHours").value.trim() || selectedPlace?.hours?.replace(/\n/g, " · ") || "",
         noiseLevel: getActiveChipValue(noiseChips),
         costToSit: getActiveChipValue(costChips),

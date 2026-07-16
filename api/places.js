@@ -109,7 +109,7 @@ module.exports = async (req, res) => {
   }
 
   if (action === "details") {
-    const fields = "name,formatted_address,geometry,opening_hours,photos,types,price_level,formatted_phone_number,website,business_status";
+    const fields = "name,formatted_address,address_components,geometry,opening_hours,photos,types,price_level,formatted_phone_number,website,business_status";
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}&sessiontoken=${sessionToken}`;
     const response = await fetch(url);
     const data = await response.json();
