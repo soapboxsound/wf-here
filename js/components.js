@@ -145,7 +145,7 @@ export function createSpotCard(spot) {
           <span class="spot-name">${spot.name}</span>
           ${spot.featured ? '<span class="spot-featured-badge">featured</span>' : ""}
         </div>
-        <span class="spot-meta">${spotType} · ${spot.neighborhood}</span>
+        <span class="spot-meta">${spotType} · ${spot.neighborhood || "—"}${spot.distanceLabel ? ` · ${spot.distanceLabel}` : ""}</span>
       </div>
       <i class="spot-save ${saveIconClass}${spot.saved ? " is-saved" : ""}"></i>
     </div>

@@ -95,7 +95,7 @@
       <div class="sidebar-filters" id="sidebar-filters"></div>
       <div class="results-header">
         <div class="results-count">42 spots in New York</div>
-        <div class="results-sort">best match <i class="ti ti-chevron-down"></i></div>
+        <button class="results-sort" id="resultsSort" type="button">A–Z <i class="ti ti-chevron-down"></i></button>
       </div>
       <div class="spot-list" id="spot-list"></div>
     </aside>
@@ -106,7 +106,7 @@
         <button data-view="list" type="button"><i class="ti ti-list"></i><span>list</span></button>
       </div>
       <div class="explore-spot-count">42 spots</div>
-      <button class="location-button" id="location-button" type="button" aria-label="Current location">
+      <button class="location-button" id="location-button" type="button" aria-label="Find spots near me" title="Find spots near me">
         <i class="ti ti-current-location"></i>
       </button>
       <div class="map-canvas" id="map"></div>
@@ -152,6 +152,7 @@
     const mobileFilters = document.getElementById("mobile-filters");
     const viewButtons = document.querySelectorAll(".view-toggle button");
     const resultsCount = document.querySelector(".results-count");
+    const resultsSort = document.getElementById("resultsSort");
     const mobileSpotCount = document.querySelector(".explore-spot-count");
     const exploreSearchInput = document.getElementById("exploreSearchInput");
     const exploreAutocompleteList = document.getElementById("exploreAutocompleteList");
@@ -162,6 +163,10 @@
     const LOADING_MESSAGE = "Loading spots...";
     const EMPTY_MESSAGE = "No spots found. Try adjusting your filters.";
     const DEFAULT_CITY = "new-york";
+    const CITY_CENTERS = {
+      "new-york": { lng: -73.9857, lat: 40.7484 },
+      "los-angeles": { lng: -118.2437, lat: 34.0522 }
+    };
 
     function getCityFromPath() {
       const match = window.location.pathname.match(/\/explore\/([^/]+)/);
@@ -175,6 +180,9 @@
     let savedSlugs = new Set();
     let mapInstance = null;
     let mapReadyResolve;
+    let userLocation = null;
+    let sortMode = "name";
+    let userMarker = null;
 
     const mapReady = new Promise((resolve) => {
       mapReadyResolve = resolve;
@@ -189,7 +197,178 @@
     }
 
     function formatLocationType(listing) {
-      return `${formatType(listing.type)} · ${listing.neighborhood}`;
+      const base = `${formatType(listing.type)} · ${listing.neighborhood || "—"}`;
+      return listing.distanceLabel ? `${base} · ${listing.distanceLabel}` : base;
+    }
+
+    function distanceMiles(lat1, lng1, lat2, lng2) {
+      const toRad = (degrees) => (degrees * Math.PI) / 180;
+      const earthRadiusMiles = 3958.8;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+
+      return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function formatDistance(miles) {
+      if (!Number.isFinite(miles)) {
+        return "";
+      }
+
+      if (miles < 0.1) {
+        return "nearby";
+      }
+
+      if (miles < 10) {
+        return `${miles.toFixed(1)} mi`;
+      }
+
+      return `${Math.round(miles)} mi`;
+    }
+
+    function showExploreToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "explore-toast";
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      window.setTimeout(() => toast.remove(), 3200);
+    }
+
+    function getSortedListings() {
+      if (sortMode !== "nearest" || !userLocation) {
+        return [...listings].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      }
+
+      return [...listings]
+        .map((listing) => {
+          const miles = distanceMiles(
+            userLocation.lat,
+            userLocation.lng,
+            Number(listing.lat) || 0,
+            Number(listing.lng) || 0
+          );
+
+          return {
+            ...listing,
+            distanceMiles: miles,
+            distanceLabel: formatDistance(miles)
+          };
+        })
+        .sort((a, b) => a.distanceMiles - b.distanceMiles);
+    }
+
+    function updateSortLabel() {
+      if (!resultsSort) {
+        return;
+      }
+
+      resultsSort.innerHTML =
+        sortMode === "nearest"
+          ? 'nearest <i class="ti ti-current-location"></i>'
+          : 'A–Z <i class="ti ti-chevron-down"></i>';
+      resultsSort.classList.toggle("is-nearest", sortMode === "nearest");
+    }
+
+    function switchToListView() {
+      viewButtons.forEach((item) => {
+        item.classList.toggle("is-active", item.dataset.view === "list");
+      });
+      mapElement.style.display = "none";
+      mapListView.classList.add("is-visible");
+      popup.style.display = "none";
+    }
+
+    function refreshListingViews() {
+      const sorted = getSortedListings();
+      cardsById.clear();
+      updateSpotCounts(sorted.length);
+      updateSortLabel();
+      renderCardList(spotList, sorted);
+      renderCardList(mapListView, sorted);
+      return sorted;
+    }
+
+    function placeUserMarker() {
+      if (!mapInstance || !userLocation) {
+        return;
+      }
+
+      if (userMarker) {
+        userMarker.remove();
+      }
+
+      const markerElement = document.createElement("div");
+      markerElement.className = "user-location-dot";
+      markerElement.setAttribute("aria-hidden", "true");
+
+      userMarker = new mapboxgl.Marker({ element: markerElement })
+        .setLngLat([userLocation.lng, userLocation.lat])
+        .addTo(mapInstance);
+    }
+
+    function locateUser() {
+      if (!navigator.geolocation) {
+        showExploreToast("Location isn’t available in this browser.");
+        return;
+      }
+
+      locationButton.disabled = true;
+      locationButton.classList.add("is-loading");
+      locationButton.setAttribute("aria-busy", "true");
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          sortMode = "nearest";
+          locationButton.disabled = false;
+          locationButton.classList.remove("is-loading");
+          locationButton.classList.add("is-active");
+          locationButton.removeAttribute("aria-busy");
+
+          if (mapInstance) {
+            mapInstance.flyTo({
+              center: [userLocation.lng, userLocation.lat],
+              zoom: 14
+            });
+            placeUserMarker();
+          }
+
+          const sorted = refreshListingViews();
+          showExploreToast("Showing spots nearest to you");
+
+          if (window.matchMedia("(max-width: 768px)").matches) {
+            switchToListView();
+          }
+
+          if (sorted[0]) {
+            showPopup(sorted[0]);
+          }
+        },
+        (error) => {
+          locationButton.disabled = false;
+          locationButton.classList.remove("is-loading");
+          locationButton.removeAttribute("aria-busy");
+
+          if (error.code === error.PERMISSION_DENIED) {
+            showExploreToast("Allow location access to find spots near you.");
+          } else if (error.code === error.TIMEOUT) {
+            showExploreToast("Location timed out — try again.");
+          } else {
+            showExploreToast("Couldn’t get your location. Try again.");
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 60000
+        }
+      );
     }
 
     function formatWifiQuality(listing) {
@@ -240,7 +419,8 @@
         type: formatType(listing.type),
         attributes: deriveAttributes(listing),
         wifiQuality: formatWifiQuality(listing),
-        saved: savedSlugs.has(listing.slug)
+        saved: savedSlugs.has(listing.slug),
+        distanceLabel: listing.distanceLabel || ""
       };
     }
 
@@ -413,11 +593,12 @@
 
     if (window.mapboxgl) {
       mapboxgl.accessToken = mapboxToken;
+      const cityCenter = CITY_CENTERS[activeCity] || CITY_CENTERS[DEFAULT_CITY];
 
       mapInstance = new mapboxgl.Map({
         container: "map",
         style: "mapbox://styles/mapbox/light-v11",
-        center: [-73.9857, 40.7484],
+        center: [cityCenter.lng, cityCenter.lat],
         zoom: 13
       });
 
@@ -460,6 +641,7 @@
     async function loadListings() {
       setStateMessage(spotList, LOADING_MESSAGE);
       setStateMessage(mapListView, LOADING_MESSAGE);
+      updateSortLabel();
 
       try {
         await refreshSavedSlugs();
@@ -473,9 +655,7 @@
           return;
         }
 
-        updateSpotCounts(listings.length);
-        renderCardList(spotList, listings);
-        renderCardList(mapListView, listings);
+        refreshListingViews();
         await renderMarkers(listings);
       } catch (error) {
         console.error("Failed to load listings", error);
@@ -486,10 +666,17 @@
       }
     }
 
-    locationButton.addEventListener("click", () => {
-      if (mapInstance) {
-        mapInstance.flyTo({ center: [-73.9857, 40.7484], zoom: 13 });
+    locationButton.addEventListener("click", locateUser);
+
+    resultsSort?.addEventListener("click", () => {
+      if (sortMode === "nearest" && userLocation) {
+        sortMode = "name";
+        locationButton.classList.remove("is-active");
+        refreshListingViews();
+        return;
       }
+
+      locateUser();
     });
 
     viewButtons.forEach((button) => {
@@ -507,8 +694,7 @@
       await refreshSavedSlugs();
 
       if (listings.length) {
-        renderCardList(spotList, listings);
-        renderCardList(mapListView, listings);
+        refreshListingViews();
       }
     });
 
