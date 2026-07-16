@@ -81,6 +81,7 @@
 
     <div class="import-actions admin-listings-actions">
       <button class="listing-btn listing-btn-feature" id="fillNeighborhoodsBtn" type="button">Fill missing neighborhoods</button>
+      <button class="listing-btn listing-btn-delete" id="deleteCoordDupesBtn" type="button">Delete coordinate duplicates</button>
     </div>
 
     <div id="listingsList"></div>
@@ -103,6 +104,7 @@
     const duplicateFilters = document.getElementById("duplicateFilters");
     const neighborhoodFilters = document.getElementById("neighborhoodFilters");
     const fillNeighborhoodsBtn = document.getElementById("fillNeighborhoodsBtn");
+    const deleteCoordDupesBtn = document.getElementById("deleteCoordDupesBtn");
 
     const cityLabels = {
       "new-york": "New York",
@@ -207,6 +209,82 @@
       }
 
       return true;
+    }
+
+    function listingQualityScore(listing) {
+      let score = 0;
+
+      if (listing.status === "approved") {
+        score += 100;
+      }
+
+      if (listing.featured) {
+        score += 20;
+      }
+
+      if (listing.googlePlaceId) {
+        score += 15;
+      }
+
+      if (listing.neighborhood?.trim()) {
+        score += 10;
+      }
+
+      if (listing.address?.trim()) {
+        score += 10;
+      }
+
+      if (listing.hours?.trim()) {
+        score += 5;
+      }
+
+      if (listing.wifiNetwork?.trim()) {
+        score += 5;
+      }
+
+      if (Array.isArray(listing.photos) && listing.photos.length) {
+        score += 5;
+      }
+
+      return score;
+    }
+
+    function getCoordinateDuplicateRemovals(sourceListings = listings) {
+      const groups = new Map();
+
+      sourceListings.forEach((listing) => {
+        const key = coordKey(listing);
+        if (!key) {
+          return;
+        }
+
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+
+        groups.get(key).push(listing);
+      });
+
+      const toDelete = [];
+
+      groups.forEach((group) => {
+        if (group.length < 2) {
+          return;
+        }
+
+        const ranked = [...group].sort((a, b) => {
+          const scoreDiff = listingQualityScore(b) - listingQualityScore(a);
+          if (scoreDiff) {
+            return scoreDiff;
+          }
+
+          return (a.name || "").localeCompare(b.name || "") || (a.slug || "").localeCompare(b.slug || "");
+        });
+
+        toDelete.push(...ranked.slice(1));
+      });
+
+      return toDelete;
     }
 
     function showToast(message, type = "success") {
@@ -833,6 +911,70 @@
       } finally {
         fillNeighborhoodsBtn.disabled = false;
         fillNeighborhoodsBtn.textContent = "Fill missing neighborhoods";
+        updateCount();
+      }
+    });
+
+    deleteCoordDupesBtn.addEventListener("click", async () => {
+      const scopeListings = getCityStatusFiltered();
+      const toDelete = getCoordinateDuplicateRemovals(scopeListings);
+
+      if (!toDelete.length) {
+        showToast("No coordinate duplicates in the current city/status filters.", "muted");
+        return;
+      }
+
+      const groupCount = new Set(toDelete.map((listing) => coordKey(listing))).size;
+      const confirmed = window.confirm(
+        `Delete ${toDelete.length} duplicate listing${toDelete.length === 1 ? "" : "s"} across ${groupCount} coordinate${groupCount === 1 ? "" : "s"}?\n\nKeeps the best copy at each location (prefers published + more complete data).`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      deleteCoordDupesBtn.disabled = true;
+      fillNeighborhoodsBtn.disabled = true;
+      deleteCoordDupesBtn.textContent = "Deleting duplicates...";
+
+      let deleted = 0;
+      let failed = 0;
+      const deletedIds = new Set();
+
+      try {
+        for (let index = 0; index < toDelete.length; index += 1) {
+          const listing = toDelete[index];
+          listingsSummary.textContent = `Deleting duplicates: ${index + 1} / ${toDelete.length}`;
+
+          try {
+            await deleteListing(listing.id);
+            deletedIds.add(listing.id);
+            deleted += 1;
+          } catch (error) {
+            console.error("Failed to delete duplicate", listing.id, error);
+            failed += 1;
+          }
+        }
+
+        listings = listings.filter((listing) => !deletedIds.has(listing.id));
+        rebuildNameCounts();
+        activeDuplicate = "all";
+        activeNeighborhood = "all";
+        setActiveFilter(duplicateFilters, duplicateFilters.querySelector('[data-duplicate="all"]'));
+        renderListings();
+
+        if (failed) {
+          showToast(`Removed ${deleted} duplicate${deleted === 1 ? "" : "s"} · ${failed} failed.`, "muted");
+        } else {
+          showToast(`Removed ${deleted} coordinate duplicate${deleted === 1 ? "" : "s"}.`);
+        }
+      } catch (error) {
+        console.error("Bulk duplicate delete failed", error);
+        showToast(error.message || "Bulk delete failed.", "muted");
+      } finally {
+        deleteCoordDupesBtn.disabled = false;
+        fillNeighborhoodsBtn.disabled = false;
+        deleteCoordDupesBtn.textContent = "Delete coordinate duplicates";
         updateCount();
       }
     });
