@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Temporary open rules for admin import/review.
+    // Replace with Brief 17 production rules + admin API before public launch.
+    match /listings/{listing} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    match /submissions/{submission} {
+      allow read, create, update, delete: if true;
+    }
+
+    match /savedSpots/{savedSpot} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    match /featuredLeads/{lead} {
+      allow create: if true;
+      allow read, update, delete: if true;
+    }
+
+    match /removalRequests/{request} {
+      allow create: if true;
+      allow read, update, delete: if true;
+    }
+  }
+}

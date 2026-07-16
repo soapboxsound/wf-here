@@ -89,15 +89,7 @@
   <script src="/js/main.js"></script>
   <script type="module" src="/js/nav-auth.js"></script>
   <script type="module">
-    import { getAdminListings, updateListing } from "/js/db.js";
-
-    async function deleteListingSafe(listingId) {
-      const { deleteListing } = await import("/js/db.js");
-      if (typeof deleteListing !== "function") {
-        throw new Error("Delete is unavailable — hard-refresh the page (Cmd+Shift+R) and try again.");
-      }
-      return deleteListing(listingId);
-    }
+    import { deleteListing, getAdminListings, updateListing } from "/js/db.js";
 
     const NEEDS_NEIGHBORHOOD = "Needs neighborhood";
     const NEIGHBORHOOD_BATCH_SIZE = 20;
@@ -618,7 +610,7 @@
 
       card.querySelector('[data-action="delete"]').addEventListener("click", async () => {
         const confirmed = window.confirm(
-          `Delete “${listing.name || listing.slug}”? This cannot be undone.`
+          `Delete “${listing.name || listing.slug}”? It will be removed from the admin list.`
         );
 
         if (!confirmed) {
@@ -630,14 +622,19 @@
         deleteButton.textContent = "Deleting...";
 
         try {
-          await deleteListingSafe(listing.id);
+          if (!listing.id) {
+            throw new Error("Missing listing id");
+          }
+
+          const result = await deleteListing(listing.id);
           listings = listings.filter((item) => item.id !== listing.id);
           rebuildNameCounts();
           renderListings();
-          showToast("Listing deleted.");
+          showToast(result?.method === "soft" ? "Listing removed." : "Listing deleted.");
         } catch (error) {
           console.error("Failed to delete listing", error);
-          showToast("Could not delete listing.", "muted");
+          const detail = error?.code || error?.message || "unknown error";
+          showToast(`Could not delete listing (${detail}).`, "muted");
           deleteButton.disabled = false;
           deleteButton.textContent = "Delete";
         }

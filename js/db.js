@@ -52,7 +52,9 @@ export async function getListings(city) {
 
 export async function getAdminListings() {
   const snapshot = await getDocs(collection(db, "listings"));
-  const listings = sortByName(dedupeBySlug(snapshot.docs.map(withId)));
+  const listings = sortByName(
+    dedupeBySlug(snapshot.docs.map(withId)).filter((listing) => listing.status !== "deleted")
+  );
 
   return listings.sort((a, b) => {
     if (Boolean(b.featured) !== Boolean(a.featured)) {
@@ -68,7 +70,29 @@ export async function updateListing(listingId, data) {
 }
 
 export async function deleteListing(listingId) {
-  return deleteDoc(doc(db, "listings", listingId));
+  const listingRef = doc(db, "listings", listingId);
+
+  try {
+    await deleteDoc(listingRef);
+    return { method: "hard" };
+  } catch (error) {
+    // Firestore rules often allow updates but block hard deletes.
+    // Soft-delete keeps admin cleanup working until an admin API exists.
+    const permissionDenied =
+      error?.code === "permission-denied" ||
+      /permission|insufficient/i.test(String(error?.message || ""));
+
+    if (!permissionDenied) {
+      throw error;
+    }
+
+    await updateDoc(listingRef, {
+      status: "deleted",
+      deletedAt: new Date().toISOString()
+    });
+
+    return { method: "soft" };
+  }
 }
 
 export async function getListing(slug) {
