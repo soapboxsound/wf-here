@@ -1,7 +1,7 @@
 const fetch = require("node-fetch");
 
 const BATCH_LIMIT = 40;
-const BATCH_CONCURRENCY = 8;
+const BATCH_CONCURRENCY = 2;
 
 async function mapPool(items, limit, worker) {
   const results = new Array(items.length);
@@ -53,7 +53,13 @@ async function reverseGeocodeGoogle(lat, lng, apiKey) {
   const data = await response.json();
 
   if (data.status !== "OK" || !data.results?.length) {
-    return { neighborhood: "", address: "", borough: "" };
+    return {
+      neighborhood: "",
+      address: "",
+      borough: "",
+      provider: "google",
+      error: data.error_message || data.status || "NO_RESULTS"
+    };
   }
 
   const result = data.results[0];
@@ -69,7 +75,8 @@ async function reverseGeocodeGoogle(lat, lng, apiKey) {
   return {
     neighborhood: get("neighborhood", "sublocality", "sublocality_level_1") || get("locality"),
     borough: get("sublocality_level_1", "political"),
-    address: result.formatted_address || ""
+    address: result.formatted_address || "",
+    provider: "google"
   };
 }
 
@@ -77,6 +84,17 @@ async function reverseGeocodeMapbox(lat, lng, token) {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(lng)},${encodeURIComponent(lat)}.json?types=neighborhood,locality,place,address&limit=5&access_token=${token}`;
   const response = await fetch(url);
   const data = await response.json();
+
+  if (data.message) {
+    return {
+      neighborhood: "",
+      address: "",
+      borough: "",
+      provider: "mapbox",
+      error: data.message
+    };
+  }
+
   const features = data.features || [];
 
   const neighborhoodFeature = features.find((feature) =>
@@ -99,7 +117,45 @@ async function reverseGeocodeMapbox(lat, lng, token) {
       pickContextName(context, "locality") ||
       "",
     borough: pickContextName(context, "locality") || pickContextName(context, "place") || "",
-    address: addressFeature?.place_name || neighborhoodFeature?.place_name || ""
+    address: addressFeature?.place_name || neighborhoodFeature?.place_name || "",
+    provider: "mapbox"
+  };
+}
+
+async function reverseGeocodeNominatim(lat, lng) {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&format=jsonv2&addressdetails=1&zoom=18`;
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "wf-here-admin/1.0 (workspace finder neighborhood fill)",
+      Accept: "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    return {
+      neighborhood: "",
+      address: "",
+      borough: "",
+      provider: "nominatim",
+      error: `HTTP_${response.status}`
+    };
+  }
+
+  const data = await response.json();
+  const address = data.address || {};
+
+  return {
+    neighborhood:
+      address.neighbourhood ||
+      address.neighborhood ||
+      address.suburb ||
+      address.quarter ||
+      address.city_district ||
+      address.borough ||
+      "",
+    borough: address.borough || address.city_district || address.suburb || "",
+    address: data.display_name || "",
+    provider: "nominatim"
   };
 }
 
@@ -108,22 +164,48 @@ async function reverseGeocode(lat, lng, { googleKey, mapboxToken }) {
     return { neighborhood: "", address: "", borough: "" };
   }
 
+  const attempts = [];
+
   if (googleKey) {
     try {
       const googleResult = await reverseGeocodeGoogle(lat, lng, googleKey);
+      attempts.push(googleResult);
       if (googleResult.neighborhood || googleResult.address) {
         return googleResult;
       }
     } catch (error) {
-      console.warn("Google reverse geocode failed", error);
+      attempts.push({ provider: "google", error: error.message });
     }
   }
 
   if (mapboxToken) {
-    return reverseGeocodeMapbox(lat, lng, mapboxToken);
+    try {
+      const mapboxResult = await reverseGeocodeMapbox(lat, lng, mapboxToken);
+      attempts.push(mapboxResult);
+      if (mapboxResult.neighborhood || mapboxResult.address) {
+        return mapboxResult;
+      }
+    } catch (error) {
+      attempts.push({ provider: "mapbox", error: error.message });
+    }
   }
 
-  return { neighborhood: "", address: "", borough: "" };
+  try {
+    const nominatimResult = await reverseGeocodeNominatim(lat, lng);
+    if (nominatimResult.neighborhood || nominatimResult.address) {
+      return nominatimResult;
+    }
+    attempts.push(nominatimResult);
+  } catch (error) {
+    attempts.push({ provider: "nominatim", error: error.message });
+  }
+
+  return {
+    neighborhood: "",
+    address: "",
+    borough: "",
+    error: attempts.map((item) => `${item.provider}:${item.error || "empty"}`).join(" | ")
+  };
 }
 
 module.exports = async (req, res) => {

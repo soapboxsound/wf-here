@@ -86,7 +86,7 @@
     import { getAdminListings, updateListing } from "/js/db.js";
 
     const NEEDS_NEIGHBORHOOD = "Needs neighborhood";
-    const NEIGHBORHOOD_BATCH_SIZE = 40;
+    const NEIGHBORHOOD_BATCH_SIZE = 20;
 
     const listingsCount = document.getElementById("listingsCount");
     const listingsSummary = document.getElementById("listingsSummary");
@@ -573,6 +573,7 @@
       listingsSummary.textContent = `Filling neighborhoods: 0 / ${targets.length}`;
 
       let filled = 0;
+      let lastError = "";
 
       try {
         for (let start = 0; start < targets.length; start += NEIGHBORHOOD_BATCH_SIZE) {
@@ -586,6 +587,10 @@
             const result = results[index] || {};
             const neighborhood = (result.neighborhood || "").trim();
             const address = (result.address || "").trim();
+
+            if (result.error && !neighborhood && !address) {
+              lastError = result.error;
+            }
 
             if (!neighborhood && !address) {
               continue;
@@ -610,9 +615,14 @@
 
           listingsSummary.textContent = `Filling neighborhoods: ${Math.min(start + chunk.length, targets.length)} / ${targets.length}`;
           renderListings();
+          await new Promise((resolve) => window.setTimeout(resolve, 1100));
         }
 
-        showToast(`Filled neighborhoods for ${filled} listing${filled === 1 ? "" : "s"}.`);
+        if (filled) {
+          showToast(`Filled neighborhoods for ${filled} listing${filled === 1 ? "" : "s"}.`);
+        } else {
+          showToast(lastError ? `Could not fill neighborhoods (${lastError}).` : "No neighborhoods found.", "muted");
+        }
       } catch (error) {
         console.error("Neighborhood fill failed", error);
         showToast(error.message || "Neighborhood fill failed.", "muted");
