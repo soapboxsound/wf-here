@@ -47,6 +47,49 @@ function pickContextName(context = [], typePrefix) {
   return match?.text || "";
 }
 
+const NYC_BOROUGHS = new Set([
+  "manhattan",
+  "brooklyn",
+  "queens",
+  "bronx",
+  "the bronx",
+  "staten island"
+]);
+
+function refineNeighborhood(candidate = "", address = {}, displayName = "") {
+  const preferred = [
+    address.neighbourhood,
+    address.neighborhood,
+    address.suburb,
+    address.quarter,
+    address.city_district
+  ].find((value) => value && !NYC_BOROUGHS.has(value.toLowerCase()));
+
+  if (preferred) {
+    return preferred;
+  }
+
+  if (candidate && !NYC_BOROUGHS.has(candidate.toLowerCase())) {
+    return candidate;
+  }
+
+  if (displayName && candidate) {
+    const parts = displayName.split(",").map((part) => part.trim());
+    const boroughIndex = parts.findIndex(
+      (part) => part.toLowerCase() === candidate.toLowerCase()
+    );
+
+    if (boroughIndex > 0) {
+      const before = parts[boroughIndex - 1];
+      if (before && !/^\d/.test(before) && before.length > 2 && !/avenue|street|road|blvd/i.test(before)) {
+        return before;
+      }
+    }
+  }
+
+  return candidate || preferred || "";
+}
+
 async function reverseGeocodeGoogle(lat, lng, apiKey) {
   const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(lat)},${encodeURIComponent(lng)}&key=${apiKey}`;
   const response = await fetch(url);
@@ -143,16 +186,17 @@ async function reverseGeocodeNominatim(lat, lng) {
 
   const data = await response.json();
   const address = data.address || {};
+  const rawNeighborhood =
+    address.neighbourhood ||
+    address.neighborhood ||
+    address.suburb ||
+    address.quarter ||
+    address.city_district ||
+    address.borough ||
+    "";
 
   return {
-    neighborhood:
-      address.neighbourhood ||
-      address.neighborhood ||
-      address.suburb ||
-      address.quarter ||
-      address.city_district ||
-      address.borough ||
-      "",
+    neighborhood: refineNeighborhood(rawNeighborhood, address, data.display_name || ""),
     borough: address.borough || address.city_district || address.suburb || "",
     address: data.display_name || "",
     provider: "nominatim"
