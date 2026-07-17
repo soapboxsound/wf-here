@@ -1318,7 +1318,8 @@
 
 .location-button {
   position: absolute;
-  top: 94px;
+  /* Sit below Mapbox zoom (+/−) at top-right: 14px + 64px controls + 8px gap */
+  top: 86px;
   right: 14px;
   z-index: 3;
   display: flex;
@@ -2664,6 +2665,12 @@
 
   .explore-spot-count {
     top: 58px;
+  }
+
+  .location-button {
+    top: auto;
+    bottom: 72px;
+    right: 14px;
   }
 
   .map-popup {

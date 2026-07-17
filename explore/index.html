@@ -602,7 +602,7 @@
         zoom: 13
       });
 
-      mapInstance.addControl(new mapboxgl.NavigationControl(), "top-right");
+      mapInstance.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       mapInstance.on("load", mapReadyResolve);
     } else {
       mapElement.innerHTML = '<div class="map-placeholder"><p>Mapbox map loads here after you add a public token.</p></div>';
