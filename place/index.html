@@ -29,7 +29,13 @@
     @media (max-width: 768px) {
       .place-content {
         grid-template-columns: 1fr;
-        padding-bottom: calc(var(--bottom-nav-height) + 84px);
+        padding: 1.25rem 1rem calc(var(--bottom-nav-height) + 84px);
+        gap: 1.75rem;
+      }
+
+      .place-title {
+        font-size: 28px;
+        letter-spacing: -0.8px;
       }
     }
 
@@ -185,7 +191,7 @@
 
       <section class="reviews-section">
         <div class="reviews-header">
-          <p class="section-label" style="margin-bottom: 0;">Rate this spot</p>
+          <p class="section-label" style="margin-bottom: 0;">Your rating</p>
           <p class="review-count" id="reviewCountLabel">no community ratings yet</p>
         </div>
         <div id="ratingFormMount"></div>
@@ -476,19 +482,7 @@
     }
 
     function signalFromListing(listing = {}) {
-      if (listing.adminRating?.signal) {
-        return listing.adminRating.signal;
-      }
-
-      const mapped = {
-        fast: "great",
-        blazing: "great",
-        decent: "decent",
-        poor: "poor",
-        slow: "poor"
-      };
-
-      return mapped[listing.wifiSpeed] || "decent";
+      return listing.adminRating?.signal || "";
     }
 
     function renderWfScoreSection(listing) {
@@ -496,8 +490,21 @@
       wfScoreDetail.appendChild(createWfScoreDetail(listing));
 
       const signal = signalFromListing(listing);
-      metaSignalPill.className = `indicator-pill signal-${signal}`;
-      metaSignalPill.textContent = signal;
+      const signalSeparator = metaSignalPill.nextElementSibling;
+
+      if (signal) {
+        metaSignalPill.hidden = false;
+        metaSignalPill.className = `indicator-pill signal-${signal}`;
+        metaSignalPill.textContent = signal;
+        if (signalSeparator?.classList.contains("meta-separator")) {
+          signalSeparator.hidden = false;
+        }
+      } else {
+        metaSignalPill.hidden = true;
+        if (signalSeparator?.classList.contains("meta-separator")) {
+          signalSeparator.hidden = true;
+        }
+      }
 
       const count = Number(listing.reviewCount) || 0;
       reviewCountLabel.textContent = count
@@ -512,7 +519,7 @@
         ratingFormMount.innerHTML = `
           <div class="review-placeholder">
             <i class="ti ti-pencil"></i>
-            <p>Rate this spot — <a href="/login">sign in first</a></p>
+            <p><a href="/login">Sign in</a> to leave a rating</p>
           </div>
         `;
         return;
@@ -526,24 +533,15 @@
       const form = document.createElement("div");
       form.className = "review-form";
 
-      const title = document.createElement("h2");
-      title.className = "review-form-title";
-      title.textContent = existingRating ? "Update your rating" : "Rate this spot";
-
       const widget = createRatingWidget(existingRating);
       const error = document.createElement("p");
       error.className = "review-form-error";
       error.hidden = true;
 
-      const notes = document.createElement("textarea");
-      notes.className = "form-textarea";
-      notes.placeholder = "Anything worth knowing? (optional)";
-      notes.style.minHeight = "60px";
-
       const submit = document.createElement("button");
       submit.type = "button";
       submit.className = "review-form-submit";
-      submit.textContent = "Save rating";
+      submit.textContent = existingRating ? "Update rating" : "Save rating";
 
       submit.addEventListener("click", async () => {
         if (!widget.isComplete()) {
@@ -582,22 +580,20 @@
           };
 
           renderWfScoreSection(currentListing);
-          title.textContent = "Update your rating";
+          submit.textContent = "Update rating";
           showPlaceToast("Rating saved.");
         } catch (saveError) {
           console.error("Failed to save rating", saveError);
           error.hidden = false;
           error.textContent = saveError.message || "Could not save rating.";
+          submit.textContent = existingRating ? "Update rating" : "Save rating";
         } finally {
           submit.disabled = false;
-          submit.textContent = "Save rating";
         }
       });
 
-      form.appendChild(title);
       form.appendChild(widget);
       form.appendChild(error);
-      form.appendChild(notes);
       form.appendChild(submit);
       ratingFormMount.appendChild(form);
     }

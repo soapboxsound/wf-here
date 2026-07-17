@@ -26,13 +26,19 @@
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
-      padding: 12px 16px;
+      padding: 10px 16px;
       border-bottom: var(--border-hairline);
       background: var(--color-surface);
     }
+    .admin-map-toolbar .admin-filter-btn {
+      white-space: nowrap;
+    }
+    .admin-map-list-toggle {
+      display: none;
+    }
     .admin-map-shell {
       display: grid;
-      grid-template-columns: minmax(300px, 380px) 1fr;
+      grid-template-columns: minmax(280px, 340px) 1fr;
       flex: 1;
       min-height: 0;
     }
@@ -56,6 +62,7 @@
       flex: 1;
       overflow-y: auto;
       padding: 8px;
+      -webkit-overflow-scrolling: touch;
     }
     .admin-map-item {
       width: 100%;
@@ -97,8 +104,8 @@
       right: 14px;
       bottom: 14px;
       z-index: 4;
-      max-width: 420px;
-      max-height: min(55vh, 520px);
+      max-width: 400px;
+      max-height: min(58vh, 560px);
       overflow-y: auto;
       border: var(--border-hairline);
       border-radius: var(--radius-xl);
@@ -107,11 +114,23 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     }
     .admin-map-detail[hidden] { display: none; }
+    .admin-map-detail-title {
+      margin: 0 0 4px;
+      font-size: var(--text-lg);
+      font-weight: var(--weight-medium);
+    }
+    .admin-map-detail-meta {
+      margin: 0 0 12px;
+    }
     .admin-map-detail-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 12px;
+      position: sticky;
+      bottom: 0;
+      padding-top: 10px;
+      background: linear-gradient(to bottom, transparent, var(--color-surface-raised) 28%);
     }
     .admin-map-locate {
       position: absolute;
@@ -121,9 +140,28 @@
     }
     .mapboxgl-ctrl-top-right { top: 56px; right: 14px; }
     @media (max-width: 900px) {
-      .admin-map-shell { grid-template-columns: 1fr; }
-      .admin-map-sidebar { display: none; }
       .admin-map-page { height: calc(100vh - var(--nav-height-mobile)); }
+      .admin-map-toolbar { padding: 8px 12px; }
+      .admin-map-list-toggle { display: inline-flex; }
+      .admin-map-shell { grid-template-columns: 1fr; }
+      .admin-map-sidebar {
+        display: none;
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        border-right: 0;
+      }
+      .admin-map-sidebar.is-open { display: flex; }
+      .admin-map-detail {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-width: none;
+        max-height: min(72vh, 640px);
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        padding-bottom: max(14px, env(safe-area-inset-bottom));
+      }
+      .admin-map-locate { top: 10px; right: 10px; }
     }
   </style>
 </head>
@@ -163,13 +201,14 @@
     <div class="admin-map-toolbar">
       <button class="admin-filter-btn is-active" type="button" data-focus="needs-work">Needs review</button>
       <button class="admin-filter-btn" type="button" data-focus="needs-rating">Needs rating</button>
-      <button class="admin-filter-btn" type="button" data-focus="unpublished">All unpublished</button>
-      <button class="admin-filter-btn" type="button" data-focus="missing-neighborhood">Missing neighborhood</button>
+      <button class="admin-filter-btn" type="button" data-focus="unpublished">Unpublished</button>
+      <button class="admin-filter-btn" type="button" data-focus="missing-neighborhood">No neighborhood</button>
       <span class="admin-queue-count" id="mapCount" style="margin: 0;">0 spots</span>
+      <button class="listing-btn listing-btn-edit admin-map-list-toggle" id="listToggleBtn" type="button">List</button>
     </div>
 
     <div class="admin-map-shell">
-      <aside class="admin-map-sidebar">
+      <aside class="admin-map-sidebar" id="mapSidebar">
         <div class="admin-map-sidebar-header">
           <h2 id="mapListTitle">Nearby to review</h2>
           <p class="admin-queue-count" id="mapListHint" style="margin: 0;">Use locate to sort by distance</p>
@@ -201,6 +240,8 @@
     const mapListTitle = document.getElementById("mapListTitle");
     const mapListHint = document.getElementById("mapListHint");
     const mapDetail = document.getElementById("mapDetail");
+    const mapSidebar = document.getElementById("mapSidebar");
+    const listToggleBtn = document.getElementById("listToggleBtn");
     const locateBtn = document.getElementById("locateBtn");
     const focusFilters = document.querySelectorAll("[data-focus]");
 
@@ -367,15 +408,15 @@
     function renderDetail(listing) {
       mapDetail.hidden = false;
       mapDetail.innerHTML = "";
+      mapSidebar.classList.remove("is-open");
+      listToggleBtn.textContent = "List";
 
       const title = document.createElement("h3");
-      title.style.margin = "0 0 4px";
-      title.style.fontSize = "var(--text-lg)";
+      title.className = "admin-map-detail-title";
       title.textContent = listing.name;
 
       const meta = document.createElement("p");
-      meta.className = "admin-queue-count";
-      meta.style.margin = "0 0 10px";
+      meta.className = "admin-queue-count admin-map-detail-meta";
       meta.textContent = [
         listing.distanceLabel,
         listing.neighborhood || "No neighborhood",
@@ -564,6 +605,16 @@
     });
 
     locateBtn.addEventListener("click", locateUser);
+
+    listToggleBtn.addEventListener("click", () => {
+      const open = mapSidebar.classList.toggle("is-open");
+      listToggleBtn.textContent = open ? "Map" : "List";
+      if (open) {
+        mapDetail.hidden = true;
+        selectedId = null;
+        renderList(visibleListings);
+      }
+    });
 
     async function init() {
       if (window.mapboxgl && mapboxToken) {

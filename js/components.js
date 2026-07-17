@@ -164,7 +164,7 @@ export function createSpotCard(spot) {
   const spotType = formatType(spot.type);
   const showScore = Number(spot.wfScore) > 0;
   const reviewCount = Number(spot.reviewCount) || 0;
-  const scoreSource =
+  const scoreTitle =
     reviewCount > 0
       ? `${reviewCount} community rating${reviewCount === 1 ? "" : "s"}`
       : "wf—here baseline";
@@ -174,12 +174,16 @@ export function createSpotCard(spot) {
     .join("");
   const hoursLabel = formatHoursForCard(spot.hours);
   const scoreMarkup = showScore
-    ? `<div class="wf-score-badge${reviewCount ? "" : " is-baseline"}"><span class="wf-score-num">${Number(spot.wfScore).toFixed(1)}</span><span class="wf-score-label">${spot.wfScoreLabel || ""}</span><span class="wf-score-source">${scoreSource}</span></div>`
+    ? `<div class="wf-score-badge${reviewCount ? "" : " is-baseline"}" title="${scoreTitle}"><span class="wf-score-num">${Number(spot.wfScore).toFixed(1)}</span><span class="wf-score-label">${spot.wfScoreLabel || ""}</span></div>`
     : "";
-  // Only show signal from a real admin rating — never invent one from wifiSpeed defaults
   const signalMarkup = spot.adminRating?.signal
     ? `<span class="indicator-pill signal-${spot.adminRating.signal}">${spot.adminRating.signal}</span>`
     : "";
+  const attrsBlock = attrsMarkup ? `<div class="spot-attrs">${attrsMarkup}</div>` : "";
+  const footerInner = [signalMarkup, hoursLabel ? `<span class="spot-hours">${hoursLabel}</span>` : ""]
+    .filter(Boolean)
+    .join("");
+  const footerBlock = footerInner ? `<div class="spot-card-footer">${footerInner}</div>` : "";
 
   card.innerHTML = `
     <div class="spot-card-name-row">
@@ -193,11 +197,8 @@ export function createSpotCard(spot) {
       <i class="spot-save ${saveIconClass}${spot.saved ? " is-saved" : ""}"></i>
     </div>
     ${scoreMarkup}
-    <div class="spot-attrs">${attrsMarkup}</div>
-    <div class="spot-card-footer">
-      ${signalMarkup}
-      ${hoursLabel ? `<span class="spot-hours">${hoursLabel}</span>` : ""}
-    </div>
+    ${attrsBlock}
+    ${footerBlock}
   `;
 
   if (spot.slug) {
@@ -234,37 +235,49 @@ export function createWfScoreDetail(listing = {}) {
   const label = listing.wfScoreLabel || "";
   const reviewCount = Number(listing.reviewCount) || 0;
   const hasAdminRating = Boolean(rating.signal || rating.volume || rating.power || rating.vibe);
-  const reviewText = reviewCount > 0
+  const sourceText = reviewCount > 0
     ? `${reviewCount} community rating${reviewCount === 1 ? "" : "s"}`
     : hasAdminRating
-      ? "wf—here baseline · not community reviews"
-      : "not rated yet";
+      ? "wf—here baseline"
+      : "Not rated yet";
 
-  const pillClass = (category, value, fallback) =>
-    value ? `${category}-${value}` : `${category}-${fallback} is-empty`;
+  const pill = (category, value) =>
+    value
+      ? `<span class="indicator-pill ${category}-${value}">${value}</span>`
+      : `<span class="indicator-pill is-empty">—</span>`;
+
+  const indicators = hasAdminRating
+    ? `
+    <div class="wf-score-indicators">
+      <div class="indicator-row">
+        <span class="indicator-name">Signal</span>
+        ${pill("signal", rating.signal)}
+      </div>
+      <div class="indicator-row">
+        <span class="indicator-name">Volume</span>
+        ${pill("volume", rating.volume)}
+      </div>
+      <div class="indicator-row">
+        <span class="indicator-name">Power</span>
+        ${pill("power", rating.power)}
+      </div>
+      <div class="indicator-row">
+        <span class="indicator-name">Vibe</span>
+        ${rating.vibe ? `<span class="indicator-pill vibe">${rating.vibe}</span>` : `<span class="indicator-pill is-empty">—</span>`}
+      </div>
+    </div>`
+    : "";
 
   detail.innerHTML = `
+    <p class="section-label">WF Score</p>
     <div class="wf-score-detail-top">
       <span class="wf-score-detail-num">${score ? score.toFixed(1) : "—"}</span>
-      <span class="wf-score-detail-label">${label || (hasAdminRating ? "" : "Unrated")}</span>
-      <span class="wf-score-detail-count">${reviewText}</span>
+      <div class="wf-score-detail-copy">
+        <span class="wf-score-detail-label">${label || (hasAdminRating ? "" : "Unrated")}</span>
+        <span class="wf-score-detail-count">${sourceText}</span>
+      </div>
     </div>
-    <div class="indicator-row">
-      <span class="indicator-name">Signal</span>
-      <span class="indicator-pill ${pillClass("signal", rating.signal, "decent")}">${rating.signal || "—"}</span>
-    </div>
-    <div class="indicator-row">
-      <span class="indicator-name">Volume</span>
-      <span class="indicator-pill ${pillClass("volume", rating.volume, "moderate")}">${rating.volume || "—"}</span>
-    </div>
-    <div class="indicator-row">
-      <span class="indicator-name">Power</span>
-      <span class="indicator-pill ${pillClass("power", rating.power, "some")}">${rating.power || "—"}</span>
-    </div>
-    <div class="indicator-row">
-      <span class="indicator-name">Vibe</span>
-      <span class="indicator-pill vibe${!rating.vibe ? " is-empty" : ""}">${rating.vibe || "—"}</span>
-    </div>
+    ${indicators}
   `;
 
   return detail;
