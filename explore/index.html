@@ -686,6 +686,7 @@
         const showingList = button.dataset.view === "list";
         mapElement.style.display = showingList ? "none" : "block";
         mapListView.classList.toggle("is-visible", showingList);
+        locationButton.hidden = showingList;
         popup.style.display = showingList ? "none" : "";
       });
     });
