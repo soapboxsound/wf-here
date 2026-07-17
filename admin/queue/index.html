@@ -58,6 +58,8 @@
   <script type="module" src="/js/nav-auth.js"></script>
   <script type="module">
     import { getPhotoUrl } from "/js/places.js";
+    import { calculateWfScore } from "/js/db.js";
+    import { createRatingWidget } from "/js/components.js";
     import { db } from "/js/firebase.js";
     import {
       addDoc,
@@ -190,7 +192,9 @@
       `;
     }
 
-    function buildListingFromSubmission(submission) {
+    function buildListingFromSubmission(submission, adminRating) {
+      const scored = calculateWfScore(adminRating, []);
+
       return {
         name: submission.name,
         slug: slugify(submission.name),
@@ -227,12 +231,17 @@
           ? submission.vibeTags
           : submission.attributes || [],
         photos: submission.photos || [],
-        submittedBy: submission.submitterEmail || "community"
+        submittedBy: submission.submitterEmail || "community",
+        adminRating,
+        userRatings: [],
+        wfScore: scored.wfScore,
+        wfScoreLabel: scored.wfScoreLabel,
+        reviewCount: 0
       };
     }
 
-    async function approveSubmission(submission, card) {
-      const listing = buildListingFromSubmission(submission);
+    async function approveSubmission(submission, card, adminRating) {
+      const listing = buildListingFromSubmission(submission, adminRating);
       await addDoc(collection(db, "listings"), listing);
       await updateDoc(doc(db, "submissions", submission.id), {
         status: "approved",
@@ -300,6 +309,7 @@
         </div>
         ${notesMarkup}
         <p class="review-submitter">Submitted by ${submission.submitterEmail || submission.submitterName || "anonymous"}</p>
+        <div class="admin-rating-section" data-admin-rating></div>
         <div class="review-actions">
           <button class="review-btn-approve" type="button">Approve</button>
           <button class="review-btn-reject" type="button">Reject</button>
@@ -307,9 +317,32 @@
         </div>
       `;
 
+      const ratingSection = card.querySelector("[data-admin-rating]");
+      const ratingLabel = document.createElement("p");
+      ratingLabel.className = "admin-rating-label";
+      ratingLabel.textContent = "Set baseline rating before approving";
+      const ratingWidget = createRatingWidget(null);
+      const ratingError = document.createElement("p");
+      ratingError.className = "admin-rating-error";
+      ratingError.hidden = true;
+      ratingSection.appendChild(ratingLabel);
+      ratingSection.appendChild(ratingWidget);
+      ratingSection.appendChild(ratingError);
+
+      async function handleApprove() {
+        if (!ratingWidget.isComplete()) {
+          ratingError.hidden = false;
+          ratingError.textContent = "Set all four ratings before approving.";
+          return;
+        }
+
+        ratingError.hidden = true;
+        await approveSubmission(submission, card, ratingWidget.getSelectedRating());
+      }
+
       card.querySelector(".review-btn-approve").addEventListener("click", async () => {
         try {
-          await approveSubmission(submission, card);
+          await handleApprove();
         } catch (error) {
           console.error("Failed to approve submission", error);
         }
@@ -325,7 +358,7 @@
 
       card.querySelector(".review-btn-edit").addEventListener("click", async () => {
         try {
-          await approveSubmission(submission, card);
+          await handleApprove();
         } catch (error) {
           console.error("Failed to approve submission", error);
         }

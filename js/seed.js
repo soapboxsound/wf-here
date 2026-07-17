@@ -34,7 +34,17 @@ const sampleListings = [
     bathroomNotes: "Single stall, very clean",
     vibeTags: ["neighborhood gem", "laptop friendly", "natural light", "not too crowded"],
     photos: [],
-    submittedBy: "admin"
+    submittedBy: "admin",
+    adminRating: {
+      signal: "great",
+      volume: "quiet",
+      power: "plenty",
+      vibe: "laptop friendly"
+    },
+    userRatings: [],
+    wfScore: 9.9,
+    wfScoreLabel: "Elite",
+    reviewCount: 0
   },
   {
     name: "The Ace Hotel Lobby",
@@ -62,7 +72,17 @@ const sampleListings = [
     bathroomNotes: "Multiple stalls, ask staff for access",
     vibeTags: ["great coffee", "large space", "good music", "open late"],
     photos: [],
-    submittedBy: "admin"
+    submittedBy: "admin",
+    adminRating: {
+      signal: "great",
+      volume: "moderate",
+      power: "plenty",
+      vibe: "good energy"
+    },
+    userRatings: [],
+    wfScore: 8.6,
+    wfScoreLabel: "Highly workable",
+    reviewCount: 0
   },
   {
     name: "NY Public Library - Rose Reading Room",
@@ -90,7 +110,17 @@ const sampleListings = [
     bathroomNotes: "Available on multiple floors",
     vibeTags: ["free", "very quiet", "natural light", "laptop friendly"],
     photos: [],
-    submittedBy: "admin"
+    submittedBy: "admin",
+    adminRating: {
+      signal: "decent",
+      volume: "quiet",
+      power: "some",
+      vibe: "quiet corners"
+    },
+    userRatings: [],
+    wfScore: 7.5,
+    wfScoreLabel: "Solid",
+    reviewCount: 0
   },
   {
     name: "Blank Street Coffee",
@@ -118,7 +148,17 @@ const sampleListings = [
     bathroomNotes: "Single stall, key at counter",
     vibeTags: ["laptop friendly", "good coffee", "neighborhood gem"],
     photos: [],
-    submittedBy: "admin"
+    submittedBy: "admin",
+    adminRating: {
+      signal: "great",
+      volume: "moderate",
+      power: "plenty",
+      vibe: "laptop friendly"
+    },
+    userRatings: [],
+    wfScore: 8.7,
+    wfScoreLabel: "Highly workable",
+    reviewCount: 0
   },
   {
     name: "McNally Jackson Books",
@@ -146,7 +186,17 @@ const sampleListings = [
     bathroomNotes: "Ask at the register",
     vibeTags: ["quiet corners", "neighborhood gem", "laptop friendly", "good coffee"],
     photos: [],
-    submittedBy: "admin"
+    submittedBy: "admin",
+    adminRating: {
+      signal: "decent",
+      volume: "quiet",
+      power: "some",
+      vibe: "neighborhood spot"
+    },
+    userRatings: [],
+    wfScore: 7.4,
+    wfScoreLabel: "Solid",
+    reviewCount: 0
   }
 ];
 

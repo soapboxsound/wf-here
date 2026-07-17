@@ -102,7 +102,7 @@
         <p class="spot-location-line" id="placeLocationLine">café · Lower East Side, New York</p>
         <h1 class="place-title" id="placeTitle">Ludlow Coffee Supply</h1>
         <div class="place-meta-row">
-          <div class="spot-wifi"><span class="spot-wifi-dot" id="metaWifiDot"></span><span id="metaWifiLabel">great wifi</span></div>
+          <span class="indicator-pill signal-great" id="metaSignalPill">great</span>
           <span class="meta-separator">·</span>
           <span class="meta-open">open now</span>
           <span class="meta-separator">·</span>
@@ -111,6 +111,8 @@
           <span class="meta-muted" id="metaCost">free to sit</span>
         </div>
       </div>
+
+      <div id="wfScoreDetail"></div>
 
       <section>
         <p class="section-label">The details</p>
@@ -184,41 +186,9 @@
       <section class="reviews-section">
         <div class="reviews-header">
           <p class="section-label" style="margin-bottom: 0;">Reviews</p>
-          <p class="review-count">12 reviews</p>
+          <p class="review-count" id="reviewCountLabel">0 ratings</p>
         </div>
-        <div class="review-card">
-          <div class="review-head">
-            <div class="review-person">
-              <div class="review-avatar">JM</div>
-              <p class="review-name">Jamie M.</p>
-            </div>
-            <p class="review-date">2 weeks ago</p>
-          </div>
-          <p class="review-text">My go-to in the LES. Wifi never drops, there's always a seat at the bar if the tables are full, and nobody gives you a look for camping out for three hours.</p>
-          <div class="review-tags">
-            <span class="review-tag">great wifi</span>
-            <span class="review-tag">good seating</span>
-            <span class="review-tag">laptop friendly</span>
-          </div>
-        </div>
-        <div class="review-card">
-          <div class="review-head">
-            <div class="review-person">
-              <div class="review-avatar">SC</div>
-              <p class="review-name">Sara C.</p>
-            </div>
-            <p class="review-date">1 month ago</p>
-          </div>
-          <p class="review-text">Gets a little noisy around noon but clears up by 2pm. Coffee is genuinely good, which makes the whole thing better.</p>
-          <div class="review-tags">
-            <span class="review-tag">good coffee</span>
-            <span class="review-tag">gets busy midday</span>
-          </div>
-        </div>
-        <div class="review-placeholder">
-          <i class="ti ti-pencil"></i>
-          <p>Write a review - sign in first</p>
-        </div>
+        <div id="ratingFormMount"></div>
       </section>
 
       <p class="removal-note">Is this your business? <a href="/">Request removal ↗</a></p>
@@ -244,7 +214,16 @@
   <script type="module">
     import { onAuthChange } from "/js/auth.js";
     import { auth } from "/js/firebase.js";
-    import { getListing, isSpotSaved, saveSpot, unsaveSpot } from "/js/db.js";
+    import {
+      addUserRating,
+      calculateWfScore,
+      getListing,
+      getUserRating,
+      isSpotSaved,
+      saveSpot,
+      unsaveSpot
+    } from "/js/db.js";
+    import { createRatingWidget, createWfScoreDetail } from "/js/components.js";
     import {
       getListingPhotoAttribution,
       getListingPhotoUrls,
@@ -284,10 +263,10 @@
     const placeBackLabel = document.getElementById("placeBackLabel");
     const placeLocationLine = document.getElementById("placeLocationLine");
     const placeTitle = document.getElementById("placeTitle");
-    const metaWifiDot = document.getElementById("metaWifiDot");
-    const metaWifiLabel = document.getElementById("metaWifiLabel");
+    const metaSignalPill = document.getElementById("metaSignalPill");
     const metaHours = document.getElementById("metaHours");
     const metaCost = document.getElementById("metaCost");
+    const wfScoreDetail = document.getElementById("wfScoreDetail");
     const detailWifiSpeed = document.getElementById("detailWifiSpeed");
     const detailNoiseLevel = document.getElementById("detailNoiseLevel");
     const detailOutlets = document.getElementById("detailOutlets");
@@ -299,6 +278,8 @@
     const wifiCardDot = document.getElementById("wifiCardDot");
     const wifiNetwork = document.getElementById("wifiNetwork");
     const wifiSpeed = document.getElementById("wifiSpeed");
+    const reviewCountLabel = document.getElementById("reviewCountLabel");
+    const ratingFormMount = document.getElementById("ratingFormMount");
     const revealBtn = document.getElementById("revealBtn");
     const bathroomRevealed = document.getElementById("bathroomRevealed");
     const bathroomSubtitle = document.getElementById("bathroomSubtitle");
@@ -486,6 +467,141 @@
       });
     }
 
+    function showPlaceToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "admin-toast is-success";
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      window.setTimeout(() => toast.remove(), 3000);
+    }
+
+    function signalFromListing(listing = {}) {
+      if (listing.adminRating?.signal) {
+        return listing.adminRating.signal;
+      }
+
+      const mapped = {
+        fast: "great",
+        blazing: "great",
+        decent: "decent",
+        poor: "poor",
+        slow: "poor"
+      };
+
+      return mapped[listing.wifiSpeed] || "decent";
+    }
+
+    function renderWfScoreSection(listing) {
+      wfScoreDetail.innerHTML = "";
+      wfScoreDetail.appendChild(createWfScoreDetail(listing));
+
+      const signal = signalFromListing(listing);
+      metaSignalPill.className = `indicator-pill signal-${signal}`;
+      metaSignalPill.textContent = signal;
+
+      const count = Number(listing.reviewCount) || 0;
+      reviewCountLabel.textContent = count
+        ? `${count} rating${count === 1 ? "" : "s"}`
+        : "admin pick";
+    }
+
+    async function renderRatingForm(user) {
+      ratingFormMount.innerHTML = "";
+
+      if (!user) {
+        ratingFormMount.innerHTML = `
+          <div class="review-placeholder">
+            <i class="ti ti-pencil"></i>
+            <p>Rate this spot — <a href="/login">sign in first</a></p>
+          </div>
+        `;
+        return;
+      }
+
+      if (!currentListing?.id) {
+        return;
+      }
+
+      const existingRating = await getUserRating(currentListing.id, user.uid);
+      const form = document.createElement("div");
+      form.className = "review-form";
+
+      const title = document.createElement("h2");
+      title.className = "review-form-title";
+      title.textContent = existingRating ? "Update your rating" : "Rate this spot";
+
+      const widget = createRatingWidget(existingRating);
+      const error = document.createElement("p");
+      error.className = "review-form-error";
+      error.hidden = true;
+
+      const notes = document.createElement("textarea");
+      notes.className = "form-textarea";
+      notes.placeholder = "Anything worth knowing? (optional)";
+      notes.style.minHeight = "60px";
+
+      const submit = document.createElement("button");
+      submit.type = "button";
+      submit.className = "review-form-submit";
+      submit.textContent = "Save rating";
+
+      submit.addEventListener("click", async () => {
+        if (!widget.isComplete()) {
+          error.hidden = false;
+          error.textContent = "Please rate all four categories.";
+          return;
+        }
+
+        error.hidden = true;
+        submit.disabled = true;
+        submit.textContent = "Saving...";
+
+        try {
+          const rating = widget.getSelectedRating();
+          await addUserRating(currentListing.id, user.uid, rating);
+
+          const nextRatings = Array.isArray(currentListing.userRatings)
+            ? [...currentListing.userRatings]
+            : [];
+          const existingIndex = nextRatings.findIndex((entry) => entry.userId === user.uid);
+          const nextEntry = { userId: user.uid, ...rating, createdAt: new Date().toISOString() };
+
+          if (existingIndex >= 0) {
+            nextRatings[existingIndex] = nextEntry;
+          } else {
+            nextRatings.push(nextEntry);
+          }
+
+          const scored = calculateWfScore(currentListing.adminRating || {}, nextRatings);
+          currentListing = {
+            ...currentListing,
+            userRatings: nextRatings,
+            reviewCount: nextRatings.length,
+            wfScore: scored.wfScore,
+            wfScoreLabel: scored.wfScoreLabel
+          };
+
+          renderWfScoreSection(currentListing);
+          title.textContent = "Update your rating";
+          showPlaceToast("Rating saved.");
+        } catch (saveError) {
+          console.error("Failed to save rating", saveError);
+          error.hidden = false;
+          error.textContent = saveError.message || "Could not save rating.";
+        } finally {
+          submit.disabled = false;
+          submit.textContent = "Save rating";
+        }
+      });
+
+      form.appendChild(title);
+      form.appendChild(widget);
+      form.appendChild(error);
+      form.appendChild(notes);
+      form.appendChild(submit);
+      ratingFormMount.appendChild(form);
+    }
+
     function syncBathroomRevealButton(isVisible) {
       revealBtn.innerHTML = isVisible
         ? '<i class="ti ti-eye-off"></i><span>hide</span>'
@@ -604,10 +720,9 @@
         placeBackLink.href = `/explore/${listing.city || "new-york"}`;
         placeLocationLine.textContent = `${typeLabel} · ${listing.neighborhood}, ${cityLabel}`;
         placeTitle.textContent = listing.name;
-        metaWifiDot.style.background = wifiStyle.color;
-        metaWifiLabel.textContent = wifiStyle.label;
         metaHours.textContent = listing.hours;
         metaCost.textContent = costLabel;
+        renderWfScoreSection(listing);
 
         detailWifiSpeed.textContent = `${formatLabel(listing.wifiSpeed)} · ${listing.wifiMbps} Mbps`;
         detailNoiseLevel.textContent = noiseLabel;
@@ -647,6 +762,7 @@
         const user = auth.currentUser;
         await syncSaveButton(user);
         renderWifiPasswordState(user);
+        await renderRatingForm(user);
       } catch (error) {
         console.error("Failed to load listing", error);
         redirectToExplore();
@@ -657,6 +773,7 @@
       syncSaveButton(user);
       if (currentListing) {
         renderWifiPasswordState(user);
+        renderRatingForm(user);
       }
     });
 

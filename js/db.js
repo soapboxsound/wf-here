@@ -13,6 +13,29 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+export const SCORE_MAP = {
+  signal: { great: 10, decent: 6, poor: 2 },
+  volume: { quiet: 10, moderate: 6, loud: 2 },
+  power: { plenty: 10, some: 6, none: 2 },
+  vibe: {
+    "laptop friendly": 9,
+    "good energy": 8,
+    "hidden gem": 9,
+    "great coffee": 7,
+    "neighborhood spot": 8,
+    "open and airy": 8,
+    "quiet corners": 9,
+    "24hr access": 10,
+    "outdoor space": 7,
+    "dog friendly": 7
+  }
+};
+
+export const SIGNAL_OPTIONS = ["great", "decent", "poor"];
+export const VOLUME_OPTIONS = ["quiet", "moderate", "loud"];
+export const POWER_OPTIONS = ["plenty", "some", "none"];
+export const VIBE_OPTIONS = Object.keys(SCORE_MAP.vibe);
+
 function withId(documentSnapshot) {
   return {
     id: documentSnapshot.id,
@@ -35,6 +58,127 @@ function dedupeBySlug(listings) {
   });
 
   return Array.from(seen.values());
+}
+
+function ratingNumericScore(rating = {}) {
+  const signal = SCORE_MAP.signal[rating.signal] ?? 0;
+  const volume = SCORE_MAP.volume[rating.volume] ?? 0;
+  const power = SCORE_MAP.power[rating.power] ?? 0;
+  const vibe = SCORE_MAP.vibe[rating.vibe] ?? 0;
+
+  return signal * 0.35 + volume * 0.3 + power * 0.25 + vibe * 0.1;
+}
+
+function averageUserScore(userRatings = []) {
+  if (!userRatings.length) {
+    return 0;
+  }
+
+  const total = userRatings.reduce((sum, rating) => sum + ratingNumericScore(rating), 0);
+  return total / userRatings.length;
+}
+
+export function getWfScoreLabel(score = 0) {
+  if (score >= 9) {
+    return "Elite";
+  }
+
+  if (score >= 8) {
+    return "Highly workable";
+  }
+
+  if (score >= 7) {
+    return "Solid";
+  }
+
+  if (score >= 5) {
+    return "Depends";
+  }
+
+  return "Proceed with caution";
+}
+
+export function calculateWfScore(adminRating = {}, userRatings = []) {
+  const ratings = Array.isArray(userRatings) ? userRatings : [];
+  const adminScore = ratingNumericScore(adminRating);
+  const count = ratings.length;
+  let wfScore = adminScore;
+
+  if (count >= 20) {
+    wfScore = adminScore * 0.1 + averageUserScore(ratings) * 0.9;
+  } else if (count >= 5) {
+    wfScore = adminScore * 0.3 + averageUserScore(ratings) * 0.7;
+  }
+
+  const rounded = Math.round(wfScore * 10) / 10;
+
+  return {
+    wfScore: rounded,
+    wfScoreLabel: getWfScoreLabel(rounded)
+  };
+}
+
+export async function getUserRating(listingId, userId) {
+  if (!listingId || !userId) {
+    return null;
+  }
+
+  const snapshot = await getDoc(doc(db, "listings", listingId));
+
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const listing = snapshot.data();
+  const userRatings = Array.isArray(listing.userRatings) ? listing.userRatings : [];
+  return userRatings.find((rating) => rating.userId === userId) || null;
+}
+
+export async function addUserRating(listingId, userId, rating) {
+  if (!listingId || !userId) {
+    throw new Error("listingId and userId are required");
+  }
+
+  const listingRef = doc(db, "listings", listingId);
+  const snapshot = await getDoc(listingRef);
+
+  if (!snapshot.exists()) {
+    throw new Error("Listing not found");
+  }
+
+  const listing = snapshot.data();
+  const adminRating = listing.adminRating || {};
+  const userRatings = Array.isArray(listing.userRatings) ? [...listing.userRatings] : [];
+  const nextRating = {
+    userId,
+    signal: rating.signal,
+    volume: rating.volume,
+    power: rating.power,
+    vibe: rating.vibe,
+    createdAt: new Date().toISOString()
+  };
+
+  const existingIndex = userRatings.findIndex((entry) => entry.userId === userId);
+
+  if (existingIndex >= 0) {
+    userRatings[existingIndex] = {
+      ...userRatings[existingIndex],
+      ...nextRating
+    };
+  } else {
+    userRatings.push(nextRating);
+  }
+
+  const { wfScore, wfScoreLabel } = calculateWfScore(adminRating, userRatings);
+
+  await updateDoc(listingRef, {
+    userRatings,
+    wfScore,
+    wfScoreLabel,
+    reviewCount: userRatings.length
+  });
+
+  return wfScore;
 }
 
 export async function getListings(city) {

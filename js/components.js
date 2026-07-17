@@ -183,16 +183,22 @@ export function createSpotCard(spot) {
     card.classList.add("featured");
   }
 
-  const wifiKey = spot.wifiQuality || WIFI_QUALITY_MAP[spot.wifiSpeed] || "decent";
-  const wifi = WIFI_CONFIG[wifiKey] || WIFI_CONFIG.decent;
   const saveIconClass = spot.saved ? "ti ti-heart-filled" : "ti ti-heart";
   const attributes = deriveAttributes(spot);
   const spotType = formatType(spot.type);
+  const signal = getSignalFromSpot(spot);
+  const showScore = Number(spot.wfScore) > 0;
 
   const attrsMarkup = attributes
     .map((attribute) => `<span class="spot-attr">${attribute}</span>`)
     .join("");
   const hoursLabel = formatHoursForCard(spot.hours);
+  const scoreMarkup = showScore
+    ? `<div class="wf-score-badge"><span class="wf-score-num">${Number(spot.wfScore).toFixed(1)}</span><span class="wf-score-label">${spot.wfScoreLabel || ""}</span></div>`
+    : "";
+  const signalMarkup = signal
+    ? `<span class="indicator-pill signal-${signal}">${signal}</span>`
+    : "";
 
   card.innerHTML = `
     <div class="spot-card-name-row">
@@ -205,12 +211,10 @@ export function createSpotCard(spot) {
       </div>
       <i class="spot-save ${saveIconClass}${spot.saved ? " is-saved" : ""}"></i>
     </div>
+    ${scoreMarkup}
     <div class="spot-attrs">${attrsMarkup}</div>
     <div class="spot-card-footer">
-      <div class="spot-wifi" style="color: ${wifi.color};">
-        <span class="spot-wifi-dot"></span>
-        <span>${wifi.label}</span>
-      </div>
+      ${signalMarkup}
       ${hoursLabel ? `<span class="spot-hours">${hoursLabel}</span>` : ""}
     </div>
   `;
@@ -238,6 +242,161 @@ export function createSpotCard(spot) {
   }
 
   return card;
+}
+
+function getSignalFromSpot(spot = {}) {
+  if (spot.adminRating?.signal) {
+    return spot.adminRating.signal;
+  }
+
+  return WIFI_QUALITY_MAP[spot.wifiSpeed] || spot.wifiQuality || "";
+}
+
+export function createWfScoreDetail(listing = {}) {
+  const detail = document.createElement("div");
+  detail.className = "wf-score-detail";
+
+  const rating = listing.adminRating || {};
+  const score = Number(listing.wfScore) || 0;
+  const label = listing.wfScoreLabel || "";
+  const reviewCount = Number(listing.reviewCount) || 0;
+  const reviewText = reviewCount > 0
+    ? `${reviewCount} rating${reviewCount === 1 ? "" : "s"}`
+    : "admin pick";
+
+  detail.innerHTML = `
+    <div class="wf-score-detail-top">
+      <span class="wf-score-detail-num">${score ? score.toFixed(1) : "—"}</span>
+      <span class="wf-score-detail-label">${label}</span>
+      <span class="wf-score-detail-count">${reviewText}</span>
+    </div>
+    <div class="indicator-row">
+      <span class="indicator-name">Signal</span>
+      <span class="indicator-pill signal-${rating.signal || "decent"}">${rating.signal || "—"}</span>
+    </div>
+    <div class="indicator-row">
+      <span class="indicator-name">Volume</span>
+      <span class="indicator-pill volume-${rating.volume || "moderate"}">${rating.volume || "—"}</span>
+    </div>
+    <div class="indicator-row">
+      <span class="indicator-name">Power</span>
+      <span class="indicator-pill power-${rating.power || "some"}">${rating.power || "—"}</span>
+    </div>
+    <div class="indicator-row">
+      <span class="indicator-name">Vibe</span>
+      <span class="indicator-pill vibe">${rating.vibe || "—"}</span>
+    </div>
+  `;
+
+  return detail;
+}
+
+export function createRatingWidget(existingRating = null) {
+  const widget = document.createElement("div");
+  widget.className = "rating-widget";
+
+  const selected = {
+    signal: existingRating?.signal || "",
+    volume: existingRating?.volume || "",
+    power: existingRating?.power || "",
+    vibe: existingRating?.vibe || ""
+  };
+
+  const categories = [
+    { key: "signal", label: "Signal", options: ["great", "decent", "poor"] },
+    { key: "volume", label: "Volume", options: ["quiet", "moderate", "loud"] },
+    { key: "power", label: "Power", options: ["plenty", "some", "none"] }
+  ];
+
+  categories.forEach((category) => {
+    const row = document.createElement("div");
+    row.className = "rating-row";
+    row.dataset.category = category.key;
+
+    const name = document.createElement("span");
+    name.className = "indicator-name";
+    name.textContent = category.label;
+    row.appendChild(name);
+
+    const options = document.createElement("div");
+    options.className = "rating-options";
+
+    category.options.forEach((option) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `rating-option ${category.key}-${option}`;
+      button.dataset.value = option;
+      button.textContent = option;
+
+      if (selected[category.key] === option) {
+        button.classList.add("is-active");
+      }
+
+      button.addEventListener("click", () => {
+        selected[category.key] = option;
+        options.querySelectorAll(".rating-option").forEach((item) => {
+          item.classList.toggle("is-active", item === button);
+        });
+      });
+
+      options.appendChild(button);
+    });
+
+    row.appendChild(options);
+    widget.appendChild(row);
+  });
+
+  const vibeRow = document.createElement("div");
+  vibeRow.className = "rating-row rating-row-vibe";
+  vibeRow.dataset.category = "vibe";
+
+  const vibeName = document.createElement("span");
+  vibeName.className = "indicator-name";
+  vibeName.textContent = "Vibe";
+  vibeRow.appendChild(vibeName);
+
+  const vibeOptions = document.createElement("div");
+  vibeOptions.className = "rating-vibe-options";
+
+  Object.keys({
+    "laptop friendly": 9,
+    "good energy": 8,
+    "hidden gem": 9,
+    "great coffee": 7,
+    "neighborhood spot": 8,
+    "open and airy": 8,
+    "quiet corners": 9,
+    "24hr access": 10,
+    "outdoor space": 7,
+    "dog friendly": 7
+  }).forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "rating-option vibe";
+    button.dataset.value = option;
+    button.textContent = option;
+
+    if (selected.vibe === option) {
+      button.classList.add("is-active");
+    }
+
+    button.addEventListener("click", () => {
+      selected.vibe = option;
+      vibeOptions.querySelectorAll(".rating-option").forEach((item) => {
+        item.classList.toggle("is-active", item === button);
+      });
+    });
+
+    vibeOptions.appendChild(button);
+  });
+
+  vibeRow.appendChild(vibeOptions);
+  widget.appendChild(vibeRow);
+
+  widget.getSelectedRating = () => ({ ...selected });
+  widget.isComplete = () => Boolean(selected.signal && selected.volume && selected.power && selected.vibe);
+
+  return widget;
 }
 
 export const EXPLORE_FILTER_OPTIONS = [
