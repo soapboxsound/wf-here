@@ -14,6 +14,7 @@
     { "source": "/for-businesses", "destination": "/for-businesses" },
     { "source": "/admin/queue", "destination": "/admin/queue" },
     { "source": "/admin/listings", "destination": "/admin/listings" },
+    { "source": "/admin/map", "destination": "/admin/map" },
     { "source": "/admin/import", "destination": "/admin/import" }
   ],
   "headers": [

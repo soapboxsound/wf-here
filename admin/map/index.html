@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>field map · wf—here admin</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    .admin-map-page {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - var(--nav-height-desktop));
+      max-width: none;
+      margin: 0;
+      padding: 0 0 0;
+    }
+    .admin-map-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: var(--border-hairline);
+      background: var(--color-surface);
+    }
+    .admin-map-shell {
+      display: grid;
+      grid-template-columns: minmax(300px, 380px) 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+    .admin-map-sidebar {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: var(--border-hairline);
+      background: var(--color-surface);
+    }
+    .admin-map-sidebar-header {
+      padding: 12px 14px;
+      border-bottom: var(--border-hairline);
+    }
+    .admin-map-sidebar-header h2 {
+      margin: 0 0 4px;
+      font-size: var(--text-md);
+      font-weight: var(--weight-medium);
+    }
+    .admin-map-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .admin-map-item {
+      width: 100%;
+      text-align: left;
+      border: var(--border-hairline);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-raised);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .admin-map-item.is-active {
+      border-color: var(--color-ink);
+    }
+    .admin-map-item-name {
+      display: block;
+      color: var(--color-ink);
+      font-weight: var(--weight-medium);
+      font-size: var(--text-sm);
+    }
+    .admin-map-item-meta {
+      display: block;
+      margin-top: 2px;
+      color: var(--color-ink-muted);
+      font-size: var(--text-xs);
+    }
+    .admin-map-canvas-wrap {
+      position: relative;
+      min-height: 0;
+    }
+    #adminMap {
+      width: 100%;
+      height: 100%;
+    }
+    .admin-map-detail {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 4;
+      max-width: 420px;
+      max-height: min(55vh, 520px);
+      overflow-y: auto;
+      border: var(--border-hairline);
+      border-radius: var(--radius-xl);
+      background: var(--color-surface-raised);
+      padding: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .admin-map-detail[hidden] { display: none; }
+    .admin-map-detail-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .admin-map-locate {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 3;
+    }
+    .mapboxgl-ctrl-top-right { top: 56px; right: 14px; }
+    @media (max-width: 900px) {
+      .admin-map-shell { grid-template-columns: 1fr; }
+      .admin-map-sidebar { display: none; }
+      .admin-map-page { height: calc(100vh - var(--nav-height-mobile)); }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo-desktop" href="/"><img src="/assets/logo-primary.svg" alt="wf—here" height="28"></a>
+    <a class="nav-logo-mobile" href="/"><img src="/assets/logo-secondary.svg" alt="wf—here" height="24"></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/explore/new-york">explore</a>
+      <a class="nav-link" href="/submit">submit a spot</a>
+      <a class="nav-link" href="/for-businesses">for businesses</a>
+      <div class="nav-user-menu" id="navUserMenu" style="display: none;">
+        <span id="navUserName"></span>
+        <a href="#" id="navSignOut">sign out</a>
+      </div>
+      <a href="/login"><button class="nav-sign-in" id="navSignIn" type="button">sign in</button></a>
+    </div>
+    <button class="nav-menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
+      <i class="ti ti-menu-2"></i>
+    </button>
+    <div class="nav-mobile-menu">
+      <a href="/explore/new-york">explore</a>
+      <a href="/submit">submit a spot</a>
+      <a href="/for-businesses">for businesses</a>
+      <a class="nav-mobile-sign-in" href="/login">sign in</a>
+    </div>
+  </nav>
+
+  <main class="admin-map-page">
+    <nav class="admin-subnav" aria-label="Admin navigation" style="padding: 10px 16px 0;">
+      <a href="/admin/queue">Review queue</a>
+      <a href="/admin/listings">Listings</a>
+      <a class="is-active" href="/admin/map">Field map</a>
+      <a href="/admin/import">Import</a>
+    </nav>
+
+    <div class="admin-map-toolbar">
+      <button class="admin-filter-btn is-active" type="button" data-focus="needs-work">Needs review</button>
+      <button class="admin-filter-btn" type="button" data-focus="needs-rating">Needs rating</button>
+      <button class="admin-filter-btn" type="button" data-focus="unpublished">All unpublished</button>
+      <button class="admin-filter-btn" type="button" data-focus="missing-neighborhood">Missing neighborhood</button>
+      <span class="admin-queue-count" id="mapCount" style="margin: 0;">0 spots</span>
+    </div>
+
+    <div class="admin-map-shell">
+      <aside class="admin-map-sidebar">
+        <div class="admin-map-sidebar-header">
+          <h2 id="mapListTitle">Nearby to review</h2>
+          <p class="admin-queue-count" id="mapListHint" style="margin: 0;">Use locate to sort by distance</p>
+        </div>
+        <div class="admin-map-list" id="mapList"></div>
+      </aside>
+      <div class="admin-map-canvas-wrap">
+        <button class="location-button admin-map-locate" id="locateBtn" type="button" aria-label="Find spots near me" title="Find spots near me">
+          <i class="ti ti-current-location"></i>
+        </button>
+        <div id="adminMap"></div>
+        <div class="admin-map-detail" id="mapDetail" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module">
+    import { calculateWfScore, getAdminListings, updateListing } from "/js/db.js";
+    import { createRatingWidget } from "/js/components.js";
+    import { createPin } from "/js/pins.js";
+    import { mapboxToken } from "/js/config.js";
+
+    const CITY_CENTER = { lng: -73.9857, lat: 40.7484 };
+
+    const mapCount = document.getElementById("mapCount");
+    const mapList = document.getElementById("mapList");
+    const mapListTitle = document.getElementById("mapListTitle");
+    const mapListHint = document.getElementById("mapListHint");
+    const mapDetail = document.getElementById("mapDetail");
+    const locateBtn = document.getElementById("locateBtn");
+    const focusFilters = document.querySelectorAll("[data-focus]");
+
+    let listings = [];
+    let visibleListings = [];
+    let activeFocus = "needs-work";
+    let userLocation = null;
+    let mapInstance = null;
+    let markers = [];
+    let userMarker = null;
+    let selectedId = null;
+    let markerById = new Map();
+
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `admin-toast ${type === "success" ? "is-success" : "is-muted"}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      window.setTimeout(() => toast.remove(), 3000);
+    }
+
+    function distanceMiles(lat1, lng1, lat2, lng2) {
+      const toRad = (d) => (d * Math.PI) / 180;
+      const R = 3958.8;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function formatDistance(miles) {
+      if (!Number.isFinite(miles)) return "";
+      if (miles < 0.1) return "nearby";
+      if (miles < 10) return `${miles.toFixed(1)} mi`;
+      return `${Math.round(miles)} mi`;
+    }
+
+    function needsRating(listing) {
+      return !listing.adminRating?.signal || !Number(listing.wfScore);
+    }
+
+    function needsNeighborhood(listing) {
+      return !listing.neighborhood?.trim();
+    }
+
+    function matchesFocus(listing) {
+      if (listing.status === "deleted") return false;
+      if (!listing.lat || !listing.lng) return false;
+
+      if (activeFocus === "unpublished") {
+        return listing.status === "unpublished";
+      }
+
+      if (activeFocus === "needs-rating") {
+        return listing.status === "unpublished" && needsRating(listing);
+      }
+
+      if (activeFocus === "missing-neighborhood") {
+        return listing.status === "unpublished" && needsNeighborhood(listing);
+      }
+
+      // needs-work: unpublished and missing rating or neighborhood
+      return (
+        listing.status === "unpublished" &&
+        (needsRating(listing) || needsNeighborhood(listing))
+      );
+    }
+
+    function withDistance(items) {
+      if (!userLocation) {
+        return items.map((listing) => ({ ...listing, distanceMiles: null, distanceLabel: "" }));
+      }
+
+      return items
+        .map((listing) => {
+          const miles = distanceMiles(
+            userLocation.lat,
+            userLocation.lng,
+            Number(listing.lat),
+            Number(listing.lng)
+          );
+          return {
+            ...listing,
+            distanceMiles: miles,
+            distanceLabel: formatDistance(miles)
+          };
+        })
+        .sort((a, b) => a.distanceMiles - b.distanceMiles);
+    }
+
+    function clearMarkers() {
+      markers.forEach((marker) => marker.remove());
+      markers = [];
+      markerById = new Map();
+    }
+
+    function renderMarkers(items) {
+      clearMarkers();
+      if (!mapInstance) return;
+
+      items.forEach((listing) => {
+        const pin = createPin({
+          type: needsRating(listing) ? "standard" : "featured",
+          size: "md",
+          name: listing.name,
+          showLabel: false
+        });
+
+        pin.addEventListener("click", () => selectListing(listing.id));
+
+        const marker = new mapboxgl.Marker({ element: pin })
+          .setLngLat([listing.lng, listing.lat])
+          .addTo(mapInstance);
+
+        markers.push(marker);
+        markerById.set(listing.id, marker);
+      });
+    }
+
+    function renderList(items) {
+      mapList.innerHTML = "";
+      mapCount.textContent = `${items.length} spot${items.length === 1 ? "" : "s"}`;
+
+      if (!items.length) {
+        mapList.innerHTML = `<p class="admin-queue-count">No spots match this filter.</p>`;
+        return;
+      }
+
+      items.forEach((listing) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `admin-map-item${listing.id === selectedId ? " is-active" : ""}`;
+        button.innerHTML = `
+          <span class="admin-map-item-name">${listing.name}</span>
+          <span class="admin-map-item-meta">
+            ${listing.distanceLabel ? `${listing.distanceLabel} · ` : ""}${listing.neighborhood || "No neighborhood"}
+            ${needsRating(listing) ? " · needs rating" : listing.wfScore ? ` · ${Number(listing.wfScore).toFixed(1)}` : ""}
+          </span>
+        `;
+        button.addEventListener("click", () => selectListing(listing.id));
+        mapList.appendChild(button);
+      });
+    }
+
+    function selectListing(id) {
+      selectedId = id;
+      const listing = visibleListings.find((item) => item.id === id);
+      if (!listing) return;
+
+      renderList(visibleListings);
+
+      if (mapInstance) {
+        mapInstance.flyTo({
+          center: [listing.lng, listing.lat],
+          zoom: Math.max(mapInstance.getZoom(), 15)
+        });
+      }
+
+      renderDetail(listing);
+    }
+
+    function renderDetail(listing) {
+      mapDetail.hidden = false;
+      mapDetail.innerHTML = "";
+
+      const title = document.createElement("h3");
+      title.style.margin = "0 0 4px";
+      title.style.fontSize = "var(--text-lg)";
+      title.textContent = listing.name;
+
+      const meta = document.createElement("p");
+      meta.className = "admin-queue-count";
+      meta.style.margin = "0 0 10px";
+      meta.textContent = [
+        listing.distanceLabel,
+        listing.neighborhood || "No neighborhood",
+        listing.address || "No address",
+        needsRating(listing) ? "needs rating" : `score ${Number(listing.wfScore).toFixed(1)}`
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      const widget = createRatingWidget(listing.adminRating || null);
+
+      const error = document.createElement("p");
+      error.className = "admin-rating-error";
+      error.hidden = true;
+
+      const actions = document.createElement("div");
+      actions.className = "admin-map-detail-actions";
+
+      const publishBtn = document.createElement("button");
+      publishBtn.type = "button";
+      publishBtn.className = "listing-btn listing-btn-publish";
+      publishBtn.textContent = "Rate & publish";
+
+      const saveRatingBtn = document.createElement("button");
+      saveRatingBtn.type = "button";
+      saveRatingBtn.className = "listing-btn listing-btn-save";
+      saveRatingBtn.textContent = "Save rating only";
+
+      const editLink = document.createElement("a");
+      editLink.className = "listing-btn listing-btn-edit";
+      editLink.href = `/admin/listings`;
+      editLink.textContent = "Open listings";
+
+      const mapsLink = document.createElement("a");
+      mapsLink.className = "listing-btn listing-btn-view";
+      mapsLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${listing.lat},${listing.lng}`)}`;
+      mapsLink.target = "_blank";
+      mapsLink.rel = "noopener noreferrer";
+      mapsLink.textContent = "Open in Maps";
+
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "listing-btn listing-btn-cancel";
+      closeBtn.textContent = "Close";
+      closeBtn.addEventListener("click", () => {
+        mapDetail.hidden = true;
+        selectedId = null;
+        renderList(visibleListings);
+      });
+
+      async function saveRating({ publish }) {
+        if (!widget.isComplete()) {
+          error.hidden = false;
+          error.textContent = "Set all four ratings first.";
+          return;
+        }
+
+        error.hidden = true;
+        const adminRating = widget.getSelectedRating();
+        const scored = calculateWfScore(adminRating, listing.userRatings || []);
+        const updates = {
+          adminRating,
+          wfScore: scored.wfScore,
+          wfScoreLabel: scored.wfScoreLabel,
+          reviewCount: Array.isArray(listing.userRatings) ? listing.userRatings.length : 0
+        };
+
+        if (publish) {
+          updates.status = "approved";
+        }
+
+        publishBtn.disabled = true;
+        saveRatingBtn.disabled = true;
+
+        try {
+          await updateListing(listing.id, updates);
+          Object.assign(listing, updates);
+          const index = listings.findIndex((item) => item.id === listing.id);
+          if (index >= 0) {
+            Object.assign(listings[index], updates);
+          }
+
+          showToast(publish ? "Rated and published." : "Rating saved.");
+          if (publish) {
+            mapDetail.hidden = true;
+            selectedId = null;
+          }
+          refreshVisible();
+        } catch (saveError) {
+          console.error(saveError);
+          showToast("Could not save. Check permissions.", "muted");
+        } finally {
+          publishBtn.disabled = false;
+          saveRatingBtn.disabled = false;
+        }
+      }
+
+      publishBtn.addEventListener("click", () => saveRating({ publish: true }));
+      saveRatingBtn.addEventListener("click", () => saveRating({ publish: false }));
+
+      actions.appendChild(publishBtn);
+      actions.appendChild(saveRatingBtn);
+      actions.appendChild(editLink);
+      actions.appendChild(mapsLink);
+      actions.appendChild(closeBtn);
+
+      mapDetail.appendChild(title);
+      mapDetail.appendChild(meta);
+      mapDetail.appendChild(widget);
+      mapDetail.appendChild(error);
+      mapDetail.appendChild(actions);
+    }
+
+    function refreshVisible() {
+      visibleListings = withDistance(listings.filter(matchesFocus));
+      renderList(visibleListings);
+      renderMarkers(visibleListings);
+
+      if (selectedId && !visibleListings.some((item) => item.id === selectedId)) {
+        mapDetail.hidden = true;
+        selectedId = null;
+      }
+    }
+
+    function locateUser() {
+      if (!navigator.geolocation) {
+        showToast("Location not available.", "muted");
+        return;
+      }
+
+      locateBtn.disabled = true;
+      locateBtn.classList.add("is-loading");
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+
+          locateBtn.disabled = false;
+          locateBtn.classList.remove("is-loading");
+          locateBtn.classList.add("is-active");
+          mapListHint.textContent = "Sorted by distance from you";
+
+          if (mapInstance) {
+            mapInstance.flyTo({
+              center: [userLocation.lng, userLocation.lat],
+              zoom: 14
+            });
+
+            if (userMarker) userMarker.remove();
+            const dot = document.createElement("div");
+            dot.className = "user-location-dot";
+            userMarker = new mapboxgl.Marker({ element: dot })
+              .setLngLat([userLocation.lng, userLocation.lat])
+              .addTo(mapInstance);
+          }
+
+          refreshVisible();
+          showToast("Showing spots nearest to you");
+        },
+        () => {
+          locateBtn.disabled = false;
+          locateBtn.classList.remove("is-loading");
+          showToast("Could not get your location.", "muted");
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+      );
+    }
+
+    focusFilters.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeFocus = button.dataset.focus;
+        focusFilters.forEach((item) => item.classList.toggle("is-active", item === button));
+        mapListTitle.textContent =
+          activeFocus === "needs-rating"
+            ? "Needs WF Score"
+            : activeFocus === "missing-neighborhood"
+              ? "Missing neighborhood"
+              : activeFocus === "unpublished"
+                ? "All unpublished"
+                : "Needs review";
+        refreshVisible();
+      });
+    });
+
+    locateBtn.addEventListener("click", locateUser);
+
+    async function init() {
+      if (window.mapboxgl && mapboxToken) {
+        mapboxgl.accessToken = mapboxToken;
+        mapInstance = new mapboxgl.Map({
+          container: "adminMap",
+          style: "mapbox://styles/mapbox/light-v11",
+          center: [CITY_CENTER.lng, CITY_CENTER.lat],
+          zoom: 12
+        });
+        mapInstance.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      } else {
+        document.getElementById("adminMap").innerHTML =
+          '<p class="admin-queue-count" style="padding:20px">Map unavailable — check Mapbox token.</p>';
+      }
+
+      try {
+        listings = await getAdminListings();
+        refreshVisible();
+      } catch (error) {
+        console.error(error);
+        mapList.innerHTML = `<p class="admin-queue-count">Unable to load listings.</p>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

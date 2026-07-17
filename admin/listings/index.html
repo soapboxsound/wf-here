@@ -46,6 +46,7 @@
     <nav class="admin-subnav" aria-label="Admin navigation">
       <a href="/admin/queue">Review queue</a>
       <a class="is-active" href="/admin/listings">Listings</a>
+      <a href="/admin/map">Field map</a>
       <a href="/admin/import">Import</a>
     </nav>
 
@@ -84,6 +85,17 @@
       <button class="listing-btn listing-btn-delete" id="deleteCoordDupesBtn" type="button">Delete coordinate duplicates</button>
     </div>
 
+    <div class="admin-bulk-bar" id="bulkBar">
+      <label class="admin-bulk-select-all">
+        <input type="checkbox" id="selectAllVisible" />
+        <span>Select all visible</span>
+      </label>
+      <span class="admin-queue-count" id="bulkSelectedCount">0 selected</span>
+      <button class="listing-btn listing-btn-publish" id="bulkPublishBtn" type="button" disabled>Publish selected</button>
+      <button class="listing-btn listing-btn-unpublish" id="bulkUnpublishBtn" type="button" disabled>Unpublish selected</button>
+      <button class="listing-btn listing-btn-cancel" id="bulkClearBtn" type="button" disabled>Clear</button>
+    </div>
+
     <div id="listingsList"></div>
   </main>
 
@@ -106,6 +118,11 @@
     const neighborhoodFilters = document.getElementById("neighborhoodFilters");
     const fillNeighborhoodsBtn = document.getElementById("fillNeighborhoodsBtn");
     const deleteCoordDupesBtn = document.getElementById("deleteCoordDupesBtn");
+    const selectAllVisible = document.getElementById("selectAllVisible");
+    const bulkSelectedCount = document.getElementById("bulkSelectedCount");
+    const bulkPublishBtn = document.getElementById("bulkPublishBtn");
+    const bulkUnpublishBtn = document.getElementById("bulkUnpublishBtn");
+    const bulkClearBtn = document.getElementById("bulkClearBtn");
 
     const cityLabels = {
       "new-york": "New York",
@@ -116,6 +133,7 @@
     let nameCounts = new Map();
     let coordCounts = new Map();
     let placeIdCounts = new Map();
+    let selectedIds = new Set();
     let activeCity = "all";
     let activeStatus = "unpublished";
     let activeChain = "all";
@@ -503,6 +521,7 @@
 
       if (!filtered.length) {
         renderEmptyState();
+        updateBulkBar();
         return;
       }
 
@@ -541,6 +560,79 @@
         section.appendChild(list);
         listingsList.appendChild(section);
       });
+
+      updateBulkBar();
+    }
+
+    function updateBulkBar() {
+      const visibleIds = new Set(getFilteredListings().map((listing) => listing.id));
+      const selectedVisible = [...selectedIds].filter((id) => visibleIds.has(id));
+      const count = selectedVisible.length;
+
+      bulkSelectedCount.textContent = `${count} selected`;
+      bulkPublishBtn.disabled = count === 0;
+      bulkUnpublishBtn.disabled = count === 0;
+      bulkClearBtn.disabled = selectedIds.size === 0;
+      selectAllVisible.checked = visibleIds.size > 0 && selectedVisible.length === visibleIds.size;
+      selectAllVisible.indeterminate =
+        selectedVisible.length > 0 && selectedVisible.length < visibleIds.size;
+    }
+
+    async function bulkSetStatus(status) {
+      const targets = listings.filter(
+        (listing) => selectedIds.has(listing.id) && listing.status !== status
+      );
+
+      if (!targets.length) {
+        showToast(
+          status === "approved"
+            ? "Selected spots are already published."
+            : "Selected spots are already unpublished.",
+          "muted"
+        );
+        return;
+      }
+
+      const label = status === "approved" ? "publish" : "unpublish";
+      const confirmed = window.confirm(
+        `${label.charAt(0).toUpperCase() + label.slice(1)} ${targets.length} listing${targets.length === 1 ? "" : "s"}?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      bulkPublishBtn.disabled = true;
+      bulkUnpublishBtn.disabled = true;
+      bulkClearBtn.disabled = true;
+
+      let updated = 0;
+      let failed = 0;
+
+      for (const listing of targets) {
+        try {
+          await updateListing(listing.id, { status });
+          listing.status = status;
+          updated += 1;
+        } catch (error) {
+          console.error(`Failed to ${label}`, listing.id, error);
+          failed += 1;
+        }
+      }
+
+      if (!failed) {
+        targets.forEach((listing) => selectedIds.delete(listing.id));
+      }
+
+      renderListings();
+
+      if (failed) {
+        showToast(`Updated ${updated} · ${failed} failed.`, "muted");
+      } else {
+        showToast(
+          `${status === "approved" ? "Published" : "Unpublished"} ${updated} listing${updated === 1 ? "" : "s"}.`
+        );
+      }
     }
 
     function renderListingCard(listing) {
@@ -584,6 +676,10 @@
 
       card.innerHTML = `
         <div class="listing-card-header">
+          <label class="listing-card-select">
+            <input type="checkbox" data-select-listing ${selectedIds.has(listing.id) ? "checked" : ""} />
+            <span class="visually-hidden">Select ${listing.name || "listing"}</span>
+          </label>
           <div>
             <div class="listing-card-title-row">
               <h2 class="listing-card-name">${listing.name || "Untitled listing"}</h2>
@@ -656,6 +752,16 @@
       `;
 
       const editPanel = card.querySelector("[data-edit-panel]");
+      const selectCheckbox = card.querySelector("[data-select-listing]");
+
+      selectCheckbox.addEventListener("change", () => {
+        if (selectCheckbox.checked) {
+          selectedIds.add(listing.id);
+        } else {
+          selectedIds.delete(listing.id);
+        }
+        updateBulkBar();
+      });
 
       card.querySelector('[data-action="feature"]').addEventListener("click", async () => {
         try {
@@ -707,6 +813,7 @@
 
           const result = await deleteListing(listing.id);
           listings = listings.filter((item) => item.id !== listing.id);
+          selectedIds.delete(listing.id);
           rebuildNameCounts();
           renderListings();
           showToast(result?.method === "soft" ? "Listing removed." : "Listing deleted.");
@@ -1037,6 +1144,26 @@
       }
     });
 
+    selectAllVisible.addEventListener("change", () => {
+      const visible = getFilteredListings();
+
+      if (selectAllVisible.checked) {
+        visible.forEach((listing) => selectedIds.add(listing.id));
+      } else {
+        visible.forEach((listing) => selectedIds.delete(listing.id));
+      }
+
+      renderListings();
+    });
+
+    bulkPublishBtn.addEventListener("click", () => bulkSetStatus("approved"));
+    bulkUnpublishBtn.addEventListener("click", () => bulkSetStatus("unpublished"));
+
+    bulkClearBtn.addEventListener("click", () => {
+      selectedIds.clear();
+      renderListings();
+    });
+
     deleteCoordDupesBtn.addEventListener("click", async () => {
       const scopeListings = getCityStatusFiltered();
       const toDelete = getCoordinateDuplicateRemovals(scopeListings);
@@ -1079,6 +1206,7 @@
         }
 
         listings = listings.filter((listing) => !deletedIds.has(listing.id));
+        deletedIds.forEach((id) => selectedIds.delete(id));
         rebuildNameCounts();
         activeDuplicate = "all";
         activeNeighborhood = "all";
