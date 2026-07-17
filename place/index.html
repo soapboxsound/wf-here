@@ -185,8 +185,8 @@
 
       <section class="reviews-section">
         <div class="reviews-header">
-          <p class="section-label" style="margin-bottom: 0;">Reviews</p>
-          <p class="review-count" id="reviewCountLabel">0 ratings</p>
+          <p class="section-label" style="margin-bottom: 0;">Rate this spot</p>
+          <p class="review-count" id="reviewCountLabel">no community ratings yet</p>
         </div>
         <div id="ratingFormMount"></div>
       </section>
@@ -501,8 +501,8 @@
 
       const count = Number(listing.reviewCount) || 0;
       reviewCountLabel.textContent = count
-        ? `${count} rating${count === 1 ? "" : "s"}`
-        : "admin pick";
+        ? `${count} community rating${count === 1 ? "" : "s"}`
+        : "no community ratings yet";
     }
 
     async function renderRatingForm(user) {

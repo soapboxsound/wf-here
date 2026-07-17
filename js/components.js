@@ -1,30 +1,6 @@
 import { auth } from "/js/firebase.js";
 import { saveSpot, unsaveSpot } from "/js/db.js";
 
-const WIFI_CONFIG = {
-  great: {
-    label: "great wifi",
-    color: "var(--color-wifi-great)"
-  },
-  decent: {
-    label: "decent wifi",
-    color: "var(--color-wifi-decent)"
-  },
-  poor: {
-    label: "poor wifi",
-    color: "var(--color-wifi-poor)"
-  }
-};
-
-const WIFI_QUALITY_MAP = {
-  slow: "poor",
-  poor: "poor",
-  decent: "decent",
-  fast: "great",
-  blazing: "great",
-  great: "great"
-};
-
 function formatType(type = "") {
   return type.replace(/-/g, " ");
 }
@@ -186,18 +162,23 @@ export function createSpotCard(spot) {
   const saveIconClass = spot.saved ? "ti ti-heart-filled" : "ti ti-heart";
   const attributes = deriveAttributes(spot);
   const spotType = formatType(spot.type);
-  const signal = getSignalFromSpot(spot);
   const showScore = Number(spot.wfScore) > 0;
+  const reviewCount = Number(spot.reviewCount) || 0;
+  const scoreSource =
+    reviewCount > 0
+      ? `${reviewCount} community rating${reviewCount === 1 ? "" : "s"}`
+      : "wf—here baseline";
 
   const attrsMarkup = attributes
     .map((attribute) => `<span class="spot-attr">${attribute}</span>`)
     .join("");
   const hoursLabel = formatHoursForCard(spot.hours);
   const scoreMarkup = showScore
-    ? `<div class="wf-score-badge"><span class="wf-score-num">${Number(spot.wfScore).toFixed(1)}</span><span class="wf-score-label">${spot.wfScoreLabel || ""}</span></div>`
+    ? `<div class="wf-score-badge${reviewCount ? "" : " is-baseline"}"><span class="wf-score-num">${Number(spot.wfScore).toFixed(1)}</span><span class="wf-score-label">${spot.wfScoreLabel || ""}</span><span class="wf-score-source">${scoreSource}</span></div>`
     : "";
-  const signalMarkup = signal
-    ? `<span class="indicator-pill signal-${signal}">${signal}</span>`
+  // Only show signal from a real admin rating — never invent one from wifiSpeed defaults
+  const signalMarkup = spot.adminRating?.signal
+    ? `<span class="indicator-pill signal-${spot.adminRating.signal}">${spot.adminRating.signal}</span>`
     : "";
 
   card.innerHTML = `
@@ -244,14 +225,6 @@ export function createSpotCard(spot) {
   return card;
 }
 
-function getSignalFromSpot(spot = {}) {
-  if (spot.adminRating?.signal) {
-    return spot.adminRating.signal;
-  }
-
-  return WIFI_QUALITY_MAP[spot.wifiSpeed] || spot.wifiQuality || "";
-}
-
 export function createWfScoreDetail(listing = {}) {
   const detail = document.createElement("div");
   detail.className = "wf-score-detail";
@@ -260,31 +233,37 @@ export function createWfScoreDetail(listing = {}) {
   const score = Number(listing.wfScore) || 0;
   const label = listing.wfScoreLabel || "";
   const reviewCount = Number(listing.reviewCount) || 0;
+  const hasAdminRating = Boolean(rating.signal || rating.volume || rating.power || rating.vibe);
   const reviewText = reviewCount > 0
-    ? `${reviewCount} rating${reviewCount === 1 ? "" : "s"}`
-    : "admin pick";
+    ? `${reviewCount} community rating${reviewCount === 1 ? "" : "s"}`
+    : hasAdminRating
+      ? "wf—here baseline · not community reviews"
+      : "not rated yet";
+
+  const pillClass = (category, value, fallback) =>
+    value ? `${category}-${value}` : `${category}-${fallback} is-empty`;
 
   detail.innerHTML = `
     <div class="wf-score-detail-top">
       <span class="wf-score-detail-num">${score ? score.toFixed(1) : "—"}</span>
-      <span class="wf-score-detail-label">${label}</span>
+      <span class="wf-score-detail-label">${label || (hasAdminRating ? "" : "Unrated")}</span>
       <span class="wf-score-detail-count">${reviewText}</span>
     </div>
     <div class="indicator-row">
       <span class="indicator-name">Signal</span>
-      <span class="indicator-pill signal-${rating.signal || "decent"}">${rating.signal || "—"}</span>
+      <span class="indicator-pill ${pillClass("signal", rating.signal, "decent")}">${rating.signal || "—"}</span>
     </div>
     <div class="indicator-row">
       <span class="indicator-name">Volume</span>
-      <span class="indicator-pill volume-${rating.volume || "moderate"}">${rating.volume || "—"}</span>
+      <span class="indicator-pill ${pillClass("volume", rating.volume, "moderate")}">${rating.volume || "—"}</span>
     </div>
     <div class="indicator-row">
       <span class="indicator-name">Power</span>
-      <span class="indicator-pill power-${rating.power || "some"}">${rating.power || "—"}</span>
+      <span class="indicator-pill ${pillClass("power", rating.power, "some")}">${rating.power || "—"}</span>
     </div>
     <div class="indicator-row">
       <span class="indicator-name">Vibe</span>
-      <span class="indicator-pill vibe">${rating.vibe || "—"}</span>
+      <span class="indicator-pill vibe${!rating.vibe ? " is-empty" : ""}">${rating.vibe || "—"}</span>
     </div>
   `;
 
