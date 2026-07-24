@@ -19,7 +19,8 @@ const staticPaths = [
   "new-york",
   "los-angeles",
   "robots.txt",
-  "sitemap.xml"
+  "sitemap.xml",
+  "manifest.webmanifest"
 ];
 
 require("./generate-config.js");
