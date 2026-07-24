@@ -60,27 +60,22 @@
 
   <script src="/js/main.js"></script>
   <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module" src="/js/admin-gate.js"></script>
   <script type="module">
     import { getPhotoUrl } from "/js/places.js";
     import { calculateWfScore } from "/js/db.js";
     import { createRatingWidget } from "/js/components.js";
-    import { db } from "/js/firebase.js";
     import {
-      addDoc,
-      collection,
-      doc,
-      onSnapshot,
-      query,
-      updateDoc,
-      where
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+      adminApproveSubmission,
+      adminGetSubmissions,
+      adminRejectSubmission
+    } from "/js/admin-api.js";
 
     const queueCount = document.getElementById("queueCount");
     const queueList = document.getElementById("queueList");
-    const pendingQuery = query(collection(db, "submissions"), where("status", "==", "pending"));
 
+    let pollTimer = null;
     let knownSubmissionIds = new Set();
-    let isInitialQueueLoad = true;
 
     const cityLabels = {
       "new-york": "New York",
@@ -246,17 +241,13 @@
 
     async function approveSubmission(submission, card, adminRating) {
       const listing = buildListingFromSubmission(submission, adminRating);
-      await addDoc(collection(db, "listings"), listing);
-      await updateDoc(doc(db, "submissions", submission.id), {
-        status: "approved",
-        slug: listing.slug
-      });
+      await adminApproveSubmission(submission.id, listing);
       removeCard(card);
       showToast("Spot approved and added to listings.");
     }
 
     async function rejectSubmission(submission, card) {
-      await updateDoc(doc(db, "submissions", submission.id), { status: "rejected" });
+      await adminRejectSubmission(submission.id);
       removeCard(card);
       showToast("Submission rejected.", "muted");
     }
@@ -371,25 +362,11 @@
       return card;
     }
 
-    function sortSubmissions(documents) {
-      return documents
-        .map((documentSnapshot) => ({
-          id: documentSnapshot.id,
-          ...documentSnapshot.data()
-        }))
-        .sort((a, b) => {
-          const aTime = a.createdAt?.toMillis?.() ?? 0;
-          const bTime = b.createdAt?.toMillis?.() ?? 0;
-          return aTime - bTime;
-        });
-    }
+    async function loadQueue({ announceNew = false } = {}) {
+      try {
+        const submissions = await adminGetSubmissions("pending");
 
-    onSnapshot(
-      pendingQuery,
-      (snapshot) => {
-        const submissions = sortSubmissions(snapshot.docs);
-
-        if (!isInitialQueueLoad) {
+        if (announceNew) {
           submissions.forEach((submission) => {
             if (!knownSubmissionIds.has(submission.id)) {
               showToast(`New submission: ${submission.name || "Untitled spot"}`);
@@ -398,14 +375,27 @@
         }
 
         knownSubmissionIds = new Set(submissions.map((submission) => submission.id));
-        isInitialQueueLoad = false;
         renderQueue(submissions);
-      },
-      (error) => {
+      } catch (error) {
         console.error("Failed to load review queue", error);
-        queueList.innerHTML = '<p class="profile-empty">Unable to load submissions.</p>';
+        queueList.innerHTML = `<p class="profile-empty">${error.message || "Unable to load submissions."}</p>`;
       }
+    }
+
+    document.addEventListener(
+      "admin-authenticated",
+      () => {
+        loadQueue();
+        pollTimer = window.setInterval(() => loadQueue({ announceNew: true }), 15000);
+      },
+      { once: true }
     );
+
+    window.addEventListener("beforeunload", () => {
+      if (pollTimer) {
+        window.clearInterval(pollTimer);
+      }
+    });
   </script>
 </body>
 </html>

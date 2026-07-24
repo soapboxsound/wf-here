@@ -3188,6 +3188,55 @@
   background: var(--color-ink-secondary);
 }
 
+.admin-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(248, 248, 246, 0.96);
+}
+
+.admin-gate[hidden] {
+  display: none;
+}
+
+.admin-gate-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 2rem;
+  border: var(--border-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-raised);
+}
+
+.admin-gate-title {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-light);
+  letter-spacing: -0.4px;
+}
+
+.admin-gate-copy {
+  margin: 0 0 1.25rem;
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.admin-gate-error {
+  margin: 0.75rem 0 0;
+  color: var(--color-pin);
+  font-size: var(--text-sm);
+}
+
+.admin-gate-card .listing-btn {
+  width: 100%;
+  margin-top: 1rem;
+}
+
 .admin-subnav {
   display: flex;
   gap: 16px;

@@ -104,6 +104,7 @@
 
   <script src="/js/main.js"></script>
   <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module" src="/js/admin-gate.js"></script>
   <script type="module">
     import { deleteListing, getAdminListings, updateListing } from "/js/db.js";
     import { generateSessionToken, getPlaceDetails } from "/js/places.js";
@@ -1251,7 +1252,7 @@
       }
     }
 
-    loadListings();
+    document.addEventListener("admin-authenticated", () => loadListings(), { once: true });
   </script>
 </body>
 </html>

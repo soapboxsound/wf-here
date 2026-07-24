@@ -2,30 +2,43 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Temporary open rules for admin import/review.
-    // Replace with Brief 17 production rules + admin API before public launch.
-    match /listings/{listing} {
-      allow read: if true;
-      allow create, update, delete: if true;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
+    function onlyCommunityRatingFieldsChanged() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasOnly(['userRatings', 'wfScore', 'wfScoreLabel', 'reviewCount']);
+    }
+
+    // Public can read published spots. Writes go through /api/admin/* (Admin SDK).
+    // Signed-in users may update only community rating fields.
+    match /listings/{listing} {
+      allow read: if resource.data.status == 'approved';
+      allow create, delete: if false;
+      allow update: if isSignedIn() && onlyCommunityRatingFieldsChanged();
+    }
+
+    // Anyone can submit a spot. Admin reads/approvals go through /api/admin/*.
     match /submissions/{submission} {
-      allow read, create, update, delete: if true;
+      allow create: if true;
+      allow read, update, delete: if false;
     }
 
     match /savedSpots/{savedSpot} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
     }
 
     match /featuredLeads/{lead} {
       allow create: if true;
-      allow read, update, delete: if true;
+      allow read, update, delete: if false;
     }
 
     match /removalRequests/{request} {
       allow create: if true;
-      allow read, update, delete: if true;
+      allow read, update, delete: if false;
     }
   }
 }

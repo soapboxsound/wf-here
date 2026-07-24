@@ -59,39 +59,60 @@ async function fetchApprovedListings(projectId) {
   }
 
   const listings = [];
-  let pageToken = "";
+  const pageSize = 300;
+  let offset = 0;
 
-  do {
-    const params = new URLSearchParams({ pageSize: "300" });
-    if (pageToken) {
-      params.set("pageToken", pageToken);
-    }
+  for (;;) {
+    const response = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+        projectId
+      )}/databases/(default)/documents:runQuery`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "listings" }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: "status" },
+                op: "EQUAL",
+                value: { stringValue: "approved" }
+              }
+            },
+            limit: pageSize,
+            offset
+          }
+        })
+      }
+    );
 
-    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
-      projectId
-    )}/databases/(default)/documents/listings?${params.toString()}`;
-
-    const response = await fetch(url);
-    const data = await response.json();
+    const rows = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.message || `Firestore fetch failed (${response.status})`);
+      throw new Error(rows.error?.message || `Firestore query failed (${response.status})`);
     }
 
-    (data.documents || []).forEach((doc) => {
-      const listing = firestoreDocToListing(doc);
-      if (
-        listing &&
-        listing.status === "approved" &&
-        listing.slug &&
-        listing.name
-      ) {
+    let batchCount = 0;
+
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row.document) {
+        return;
+      }
+
+      const listing = firestoreDocToListing(row.document);
+      if (listing && listing.slug && listing.name) {
         listings.push(listing);
+        batchCount += 1;
       }
     });
 
-    pageToken = data.nextPageToken || "";
-  } while (pageToken);
+    if (batchCount < pageSize) {
+      break;
+    }
+
+    offset += pageSize;
+  }
 
   return listings.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 }

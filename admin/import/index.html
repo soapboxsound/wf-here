@@ -135,9 +135,10 @@
 
   <script src="/js/main.js"></script>
   <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module" src="/js/admin-gate.js"></script>
   <script type="module">
     import { getAdminListings } from "/js/db.js";
-    import { db } from "/js/firebase.js";
+    import { adminUpsertListings } from "/js/admin-api.js";
     import {
       autocomplete,
       findPlaceStatusAll,
@@ -148,7 +149,6 @@
       isPermanentlyClosed,
       isTemporarilyClosed
     } from "/js/places.js";
-    import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const PAGE_SIZE = 50;
 
@@ -809,7 +809,7 @@
           if (item.placeType && googleTypeMap[item.placeType]) {
             listing.type = googleTypeMap[item.placeType];
           }
-          await setDoc(doc(db, "listings", slug), listing);
+          await adminUpsertListings(listing, { merge: true });
           existingCoords.push({ lat: item.lat, lng: item.lng });
           imported += 1;
           item.status = "imported";
@@ -822,7 +822,7 @@
         renderMapTable();
       } catch (error) {
         console.error("Map import failed", error);
-        showToast("Import failed. Check the console.", "muted");
+        showToast(error.message || "Import failed. Check the console.", "muted");
       } finally {
         importMapBtn.disabled = false;
         loadMapBtn.disabled = false;
@@ -904,7 +904,7 @@
         for (const item of toImport) {
           const slug = uniqueSlug(item.slug, reservedSlugs);
           const listing = buildListingFromPlaces(item.details, importCity.value, slug, "approved");
-          await setDoc(doc(db, "listings", slug), listing);
+          await adminUpsertListings(listing, { merge: true });
           existingPlaceIds.add(item.details.placeId);
           imported += 1;
           item.status = "imported";
@@ -916,7 +916,7 @@
         renderSearchPreview();
       } catch (error) {
         console.error("Import failed", error);
-        showToast("Import failed. Check the console.", "muted");
+        showToast(error.message || "Import failed. Check the console.", "muted");
       } finally {
         importBtn.disabled = false;
         previewBtn.disabled = false;
@@ -924,7 +924,7 @@
       }
     });
 
-    loadExistingListingsSafe();
+    document.addEventListener("admin-authenticated", () => loadExistingListingsSafe(), { once: true });
   </script>
 </body>
 </html>

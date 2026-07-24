@@ -195,48 +195,18 @@ export async function getListings(city) {
 }
 
 export async function getAdminListings() {
-  const snapshot = await getDocs(collection(db, "listings"));
-  const listings = sortByName(
-    dedupeBySlug(snapshot.docs.map(withId)).filter((listing) => listing.status !== "deleted")
-  );
-
-  return listings.sort((a, b) => {
-    if (Boolean(b.featured) !== Boolean(a.featured)) {
-      return Number(b.featured) - Number(a.featured);
-    }
-
-    return (a.name || "").localeCompare(b.name || "");
-  });
+  const { adminGetListings } = await import("/js/admin-api.js");
+  return adminGetListings();
 }
 
 export async function updateListing(listingId, data) {
-  return updateDoc(doc(db, "listings", listingId), data);
+  const { adminUpdateListing } = await import("/js/admin-api.js");
+  return adminUpdateListing(listingId, data);
 }
 
 export async function deleteListing(listingId) {
-  const listingRef = doc(db, "listings", listingId);
-
-  try {
-    await deleteDoc(listingRef);
-    return { method: "hard" };
-  } catch (error) {
-    // Firestore rules often allow updates but block hard deletes.
-    // Soft-delete keeps admin cleanup working until an admin API exists.
-    const permissionDenied =
-      error?.code === "permission-denied" ||
-      /permission|insufficient/i.test(String(error?.message || ""));
-
-    if (!permissionDenied) {
-      throw error;
-    }
-
-    await updateDoc(listingRef, {
-      status: "deleted",
-      deletedAt: new Date().toISOString()
-    });
-
-    return { method: "soft" };
-  }
+  const { adminDeleteListing } = await import("/js/admin-api.js");
+  return adminDeleteListing(listingId);
 }
 
 export async function getListing(slug) {
@@ -244,15 +214,18 @@ export async function getListing(slug) {
     return null;
   }
 
-  const listingQuery = query(collection(db, "listings"), where("slug", "==", slug));
+  const listingQuery = query(
+    collection(db, "listings"),
+    where("slug", "==", slug),
+    where("status", "==", "approved")
+  );
   const snapshot = await getDocs(listingQuery);
 
   if (snapshot.empty) {
     return null;
   }
 
-  const listing = withId(snapshot.docs[0]);
-  return listing.status === "approved" ? listing : null;
+  return withId(snapshot.docs[0]);
 }
 
 export async function submitSpot(spotData) {

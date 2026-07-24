@@ -230,6 +230,7 @@
 
   <script src="/js/main.js"></script>
   <script type="module" src="/js/nav-auth.js"></script>
+  <script type="module" src="/js/admin-gate.js"></script>
   <script type="module">
     import { calculateWfScore, getAdminListings, updateListing } from "/js/db.js";
     import { createRatingWidget } from "/js/components.js";
@@ -643,7 +644,7 @@
       }
     }
 
-    init();
+    document.addEventListener("admin-authenticated", () => init(), { once: true });
   </script>
 </body>
 </html>
