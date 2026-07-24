@@ -3,7 +3,8 @@
   "private": true,
   "description": "WF-Here map-based workspace finder",
   "scripts": {
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "seo": "node scripts/generate-seo.js"
   },
   "dependencies": {
     "node-fetch": "^2.7.0"

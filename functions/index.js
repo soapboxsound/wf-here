@@ -97,7 +97,7 @@ exports.notifySubmitterApproved = onDocumentUpdated(
     const spotName = after.name || "Your spot";
     const slug = after.slug || "";
     const placeUrl = slug
-      ? `${siteUrl.value()}/place?slug=${encodeURIComponent(slug)}`
+      ? `${siteUrl.value()}/place/${encodeURIComponent(slug)}`
       : `${siteUrl.value()}/explore/new-york`;
 
     await sendEmail({

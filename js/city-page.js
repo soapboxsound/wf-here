@@ -93,7 +93,7 @@ function renderHorizontalCard(listing) {
     : "";
 
   return `
-    <a class="city-spot-card" href="/place?slug=${encodeURIComponent(listing.slug)}">
+    <a class="city-spot-card" href="/place/${encodeURIComponent(listing.slug)}">
       <div class="city-spot-card-image" ${photoStyle}></div>
       <div class="city-spot-card-body">
         <div>

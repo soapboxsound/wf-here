@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>explore · wf—here</title>
+  <meta name="description" content="Explore the wf—here map for cafes, libraries, and workspaces with wifi and power. Filter by neighborhood and find a spot near you.">
+  <link rel="canonical" href="https://wf-here.com/explore/new-york">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Explore workspaces · wf—here">
+  <meta property="og:description" content="Map of curated cafes, libraries, and workspaces with wifi and power.">
+  <meta property="og:url" content="https://wf-here.com/explore/new-york">
+  <meta property="og:image" content="https://wf-here.com/assets/favicon.png">
+  <meta name="twitter:card" content="summary">
   <link rel="icon" href="/assets/favicon.png">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/global.css">
@@ -567,7 +575,7 @@
       popup.innerHTML = createPopupMarkup(listing);
       popup.classList.add("is-visible");
       popup.querySelector(".popup-view-button").addEventListener("click", () => {
-        window.location.href = `/place?slug=${encodeURIComponent(listing.slug)}`;
+        window.location.href = `/place/${encodeURIComponent(listing.slug)}`;
       });
       setActiveCard(listing.id);
       const activeCard = cardsById.get(listing.id);

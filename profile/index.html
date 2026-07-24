@@ -92,7 +92,7 @@
         item.className = "saved-spot-item";
         item.innerHTML = `
           <span class="saved-spot-name">${spot.spotName}</span>
-          <a class="saved-spot-link" href="/place?slug=${encodeURIComponent(spot.spotSlug)}">View spot →</a>
+          <a class="saved-spot-link" href="/place/${encodeURIComponent(spot.spotSlug)}">View spot →</a>
         `;
         savedSpotsList.appendChild(item);
       });

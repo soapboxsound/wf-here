@@ -203,7 +203,7 @@ export function createSpotCard(spot) {
 
   if (spot.slug) {
     const navigateToSpot = () => {
-      window.location.href = `/place?slug=${encodeURIComponent(spot.slug)}`;
+      window.location.href = `/place/${encodeURIComponent(spot.slug)}`;
     };
 
     card.addEventListener("click", navigateToSpot);

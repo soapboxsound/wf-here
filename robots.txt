@@ -7,3 +7,4 @@ Disallow: /admin/map
 Disallow: /admin/import
 
 Sitemap: https://wf-here.com/sitemap.xml
+Sitemap: https://wf-here.com/api/sitemap

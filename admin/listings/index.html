@@ -695,7 +695,7 @@
           </div>
         </div>
         <div class="listing-card-actions">
-          <a class="listing-btn listing-btn-view" href="/place?slug=${encodeURIComponent(listing.slug)}" target="_blank" rel="noopener noreferrer">View</a>
+          <a class="listing-btn listing-btn-view" href="/place/${encodeURIComponent(listing.slug)}" target="_blank" rel="noopener noreferrer">View</a>
           <button class="listing-btn listing-btn-feature ${listing.featured ? "is-active" : ""}" type="button" data-action="feature">
             ${listing.featured ? "Unfeature" : "Feature"}
           </button>

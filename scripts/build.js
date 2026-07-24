@@ -42,3 +42,6 @@ staticPaths.forEach((item) => {
 });
 
 console.log(`Built static site into ${publicDir}`);
+
+const { execSync } = require("child_process");
+execSync("node scripts/generate-seo.js", { stdio: "inherit", cwd: rootDir });
