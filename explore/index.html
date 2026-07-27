@@ -170,6 +170,9 @@
     const exploreNotListed = document.getElementById("exploreNotListed");
     const exploreAddLink = document.getElementById("exploreAddLink");
     const cardsById = new Map();
+    const markersById = new Map();
+    let selectedListingId = null;
+    let markerObjects = [];
 
     const LOADING_MESSAGE = "Loading spots...";
     const EMPTY_MESSAGE = "No spots found. Try adjusting your filters.";
@@ -553,10 +556,12 @@
         .map((attribute) => `<span class="spot-attr">${attribute}</span>`)
         .join("");
       const wifiKey = formatWifiQuality(listing);
+      const meta = [formatLocationType(listing), listing.neighborhood].filter(Boolean).join(" · ");
 
       return `
+        <button class="map-popup-close" type="button" aria-label="Close selected spot">×</button>
         <div class="map-popup-name">${listing.name}</div>
-        <div class="map-popup-type">${formatLocationType(listing)}</div>
+        <div class="map-popup-type">${meta || "Selected spot"}</div>
         <div class="map-popup-attrs">${attrs}</div>
         <div class="map-popup-footer">
           <div class="spot-wifi" style="color: ${wifiColors[wifiKey]};">
@@ -574,30 +579,72 @@
       });
     }
 
-    function showPopup(listing) {
+    function setActivePin(spotId) {
+      markersById.forEach((element, id) => {
+        element.classList.toggle("is-active", id === spotId);
+      });
+    }
+
+    function clearSelection() {
+      selectedListingId = null;
+      popup.classList.remove("is-visible");
+      popup.innerHTML = "";
+      setActiveCard(null);
+      setActivePin(null);
+    }
+
+    function showPopup(listing, { fly = true } = {}) {
+      selectedListingId = listing.id;
       popup.innerHTML = createPopupMarkup(listing);
       popup.classList.add("is-visible");
-      popup.querySelector(".popup-view-button").addEventListener("click", () => {
+
+      popup.querySelector(".popup-view-button").addEventListener("click", (event) => {
+        event.stopPropagation();
         window.location.href = `/place/${encodeURIComponent(listing.slug)}`;
       });
+
+      popup.querySelector(".map-popup-close").addEventListener("click", (event) => {
+        event.stopPropagation();
+        clearSelection();
+      });
+
       setActiveCard(listing.id);
+      setActivePin(listing.id);
+
       const activeCard = cardsById.get(listing.id);
       if (activeCard) {
-        activeCard.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        activeCard.scrollIntoView({ block: "center", behavior: "smooth" });
       }
+
+      if (fly && mapInstance && listing.lng && listing.lat) {
+        mapInstance.flyTo({
+          center: [listing.lng, listing.lat],
+          zoom: Math.max(mapInstance.getZoom(), 14),
+          essential: true
+        });
+      }
+    }
+
+    function selectListing(listing) {
+      showPopup(listing, { fly: true });
     }
 
     function renderCardList(target, items) {
       target.innerHTML = "";
 
-      items.forEach((listing, index) => {
-        const card = createSpotCard(toSpotCardData(listing));
-        if (index === 0 && target === spotList) {
+      items.forEach((listing) => {
+        const card = createSpotCard(toSpotCardData(listing), {
+          onSelect: () => selectListing(listing)
+        });
+
+        if (listing.id === selectedListingId) {
           card.classList.add("active");
         }
+
         if (target === spotList) {
           cardsById.set(listing.id, card);
         }
+
         target.appendChild(card);
       });
     }
@@ -615,6 +662,9 @@
 
       mapInstance.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       mapInstance.on("load", mapReadyResolve);
+      mapInstance.on("click", () => {
+        clearSelection();
+      });
     } else {
       mapElement.innerHTML = '<div class="map-placeholder"><p>Mapbox map loads here after you add a public token.</p></div>';
       mapReadyResolve();
@@ -627,25 +677,37 @@
         return;
       }
 
+      markerObjects.forEach((marker) => marker.remove());
+      markerObjects = [];
+      markersById.clear();
+
       items.forEach((listing) => {
         const markerElement = createPin({
           type: listing.featured ? "featured" : "standard",
           size: "lg",
           name: listing.name,
-          showLabel: listing.featured
+          showLabel: listing.featured || listing.id === selectedListingId
         });
 
-        markerElement.addEventListener("click", () => {
-          showPopup(listing);
+        if (listing.id === selectedListingId) {
+          markerElement.classList.add("is-active");
+        }
+
+        markerElement.addEventListener("click", (event) => {
+          event.stopPropagation();
+          selectListing(listing);
         });
 
-        new mapboxgl.Marker({ element: markerElement })
+        const marker = new mapboxgl.Marker({ element: markerElement })
           .setLngLat([listing.lng, listing.lat])
           .addTo(mapInstance);
+
+        markerObjects.push(marker);
+        markersById.set(listing.id, markerElement);
       });
 
-      if (items[0]) {
-        showPopup(items[0]);
+      if (selectedListingId && !markersById.has(selectedListingId)) {
+        clearSelection();
       }
     }
 

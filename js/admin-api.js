@@ -1,51 +1,75 @@
-const AUTH_FLAG = "adminAuthenticated";
-const PASSWORD_KEY = "wfAdminPassword";
+import { auth } from "/js/firebase.js";
 
-export function getAdminPassword() {
-  return sessionStorage.getItem(PASSWORD_KEY) || "";
-}
+const AUTH_FLAG = "adminAuthenticated";
+const AUTH_EMAIL_KEY = "wfAdminEmail";
 
 export function isAdminAuthenticated() {
-  return sessionStorage.getItem(AUTH_FLAG) === "true" && Boolean(getAdminPassword());
+  return sessionStorage.getItem(AUTH_FLAG) === "true" && Boolean(auth.currentUser);
 }
 
-export function setAdminSession(password) {
+export function getAdminEmail() {
+  return sessionStorage.getItem(AUTH_EMAIL_KEY) || auth.currentUser?.email || "";
+}
+
+export function setAdminSession(email = "") {
   sessionStorage.setItem(AUTH_FLAG, "true");
-  sessionStorage.setItem(PASSWORD_KEY, password);
+  if (email) {
+    sessionStorage.setItem(AUTH_EMAIL_KEY, email);
+  }
 }
 
 export function clearAdminSession() {
   sessionStorage.removeItem(AUTH_FLAG);
-  sessionStorage.removeItem(PASSWORD_KEY);
+  sessionStorage.removeItem(AUTH_EMAIL_KEY);
 }
 
-export async function verifyAdminPassword(password) {
+async function getIdToken(forceRefresh = false) {
+  const user = auth.currentUser;
+  if (!user) {
+    return "";
+  }
+
+  return user.getIdToken(forceRefresh);
+}
+
+export async function verifyAdminSession() {
+  const idToken = await getIdToken(true);
+
+  if (!idToken) {
+    throw new Error("Sign in with Google first");
+  }
+
   const response = await fetch("/api/admin/session", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password })
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`
+    },
+    body: JSON.stringify({ idToken })
   });
 
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || "Incorrect password");
+    clearAdminSession();
+    throw new Error(data.error || "Not authorized for admin");
   }
 
-  setAdminSession(password);
+  setAdminSession(data.email || auth.currentUser?.email || "");
   return data;
 }
 
 export async function adminRequest(path, options = {}) {
-  const password = getAdminPassword();
+  const idToken = await getIdToken();
 
-  if (!password) {
-    throw new Error("Admin session required. Refresh and sign in again.");
+  if (!idToken) {
+    clearAdminSession();
+    throw new Error("Sign in with Google to use admin tools");
   }
 
   const headers = {
     "Content-Type": "application/json",
-    "X-Admin-Password": password,
+    Authorization: `Bearer ${idToken}`,
     ...(options.headers || {})
   };
 
@@ -62,9 +86,9 @@ export async function adminRequest(path, options = {}) {
 
   const data = await response.json().catch(() => ({}));
 
-  if (response.status === 401) {
+  if (response.status === 401 || response.status === 403) {
     clearAdminSession();
-    throw new Error("Admin session expired. Refresh and sign in again.");
+    throw new Error(data.error || "Admin session expired. Sign in again.");
   }
 
   if (!response.ok) {

@@ -111,7 +111,7 @@ async function deleteListing(req, res) {
 
 module.exports = async (req, res) => {
   try {
-    if (!requireAdmin(req, res)) {
+    if (!(await requireAdmin(req, res))) {
       return;
     }
 

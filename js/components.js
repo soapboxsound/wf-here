@@ -146,13 +146,17 @@ async function toggleSpotSave(spot, icon) {
   setSpotSaveIcon(icon, true);
 }
 
-export function createSpotCard(spot) {
+export function createSpotCard(spot, { onSelect } = {}) {
   const card = document.createElement("div");
   card.className = "spot-card";
   card.tabIndex = 0;
 
   if (spot.slug) {
     card.dataset.slug = spot.slug;
+  }
+
+  if (spot.id) {
+    card.dataset.id = spot.id;
   }
 
   if (spot.featured) {
@@ -201,16 +205,23 @@ export function createSpotCard(spot) {
     ${footerBlock}
   `;
 
-  if (spot.slug) {
-    const navigateToSpot = () => {
-      window.location.href = `/place/${encodeURIComponent(spot.slug)}`;
-    };
+  const activate = () => {
+    if (typeof onSelect === "function") {
+      onSelect(spot);
+      return;
+    }
 
-    card.addEventListener("click", navigateToSpot);
+    if (spot.slug) {
+      window.location.href = `/place/${encodeURIComponent(spot.slug)}`;
+    }
+  };
+
+  if (typeof onSelect === "function" || spot.slug) {
+    card.addEventListener("click", activate);
     card.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        navigateToSpot();
+        activate();
       }
     });
   }

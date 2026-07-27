@@ -169,6 +169,18 @@
   flex-direction: column;
   align-items: center;
   cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.map-pin.is-active {
+  z-index: 5;
+  transform: scale(1.28);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+.map-pin.is-active .pin-label {
+  opacity: 1;
+  font-weight: var(--weight-medium);
 }
 
 .map-pin svg {
@@ -1377,16 +1389,23 @@
   left: 50%;
   z-index: 10;
   display: none;
-  width: 240px;
-  transform: translateX(-50%);
-  border: var(--border-hairline);
+  width: min(300px, calc(100% - 28px));
+  transform: translateX(-50%) translateY(8px);
+  border: 1.5px solid var(--color-ink);
   border-radius: var(--radius-xl);
   background: var(--color-surface-raised);
   padding: 14px 16px;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
 }
 
 .map-popup.is-visible {
   display: block;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
 }
 
 .map-popup-name {
@@ -1418,6 +1437,26 @@
 
 .map-popup-footer .spot-wifi {
   font-size: var(--text-xs);
+}
+
+.map-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-ink-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-popup-close:hover {
+  color: var(--color-ink);
+  background: var(--color-surface-sunken);
 }
 
 .popup-view-button {
@@ -2684,7 +2723,11 @@
     bottom: 58px;
     left: 14px;
     width: auto;
-    transform: none;
+    transform: translateY(8px);
+  }
+
+  .map-popup.is-visible {
+    transform: translateY(0);
   }
 
   .map-list-view {
@@ -3234,7 +3277,12 @@
 
 .admin-gate-card .listing-btn {
   width: 100%;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
+}
+
+.admin-gate-card .google-sign-in-btn {
+  width: 100%;
+  justify-content: center;
 }
 
 .admin-subnav {

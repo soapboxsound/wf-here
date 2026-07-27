@@ -10,9 +10,13 @@ In Vercel → Project → Settings → Environment Variables (Production + Previ
 
 | Name | Value |
 |---|---|
-| `ADMIN_PASSWORD` | a long random password only you know |
+| `ADMIN_EMAIL` | your Google login email (the one you use on `/login`) |
 | `FIREBASE_SERVICE_ACCOUNT` | entire service-account JSON as one line |
 | `VITE_FIREBASE_PROJECT_ID` | `wf-here` (already set) |
+
+Optional:
+- `ADMIN_EMAILS` — comma-separated list if more than one admin
+- `ADMIN_PASSWORD` — emergency fallback only; prefer Google login
 
 Redeploy after saving env vars.
 
@@ -20,7 +24,7 @@ Redeploy after saving env vars.
 From this repo (with Firebase CLI logged in):
 
 ```bash
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules,firestore:indexes
 ```
 
 Or paste `firestore.rules` into Firebase Console → Firestore → Rules → Publish.
@@ -29,4 +33,4 @@ Or paste `firestore.rules` into Firebase Console → Firestore → Rules → Pub
 - Explore still shows published spots
 - Submit still creates a submission
 - Incognito DevTools cannot write to `listings`
-- `/admin/listings` asks for password, then loads unpublished spots
+- Sign in with Google on the site, then open `/admin/listings` — it should unlock with that same account
