@@ -41,3 +41,30 @@ export async function uploadSubmissionPhotos(submissionId, files = []) {
 
   return Promise.all(uploads);
 }
+
+export async function uploadContributionPhotos(listingId, userId, files = []) {
+  if (!listingId || !userId || !files.length) {
+    return [];
+  }
+
+  const uploads = files.map(async (file, index) => {
+    const validationError = validatePhotoFile(file);
+
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
+    const fileName = `${Date.now()}-${index}-${sanitizeFileName(file.name)}`;
+    const storageRef = ref(
+      storage,
+      `listings/${listingId}/contributions/${userId}/${fileName}`
+    );
+    const snapshot = await uploadBytes(storageRef, file, {
+      contentType: file.type
+    });
+
+    return getDownloadURL(snapshot.ref);
+  });
+
+  return Promise.all(uploads);
+}

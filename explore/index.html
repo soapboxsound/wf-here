@@ -43,21 +43,36 @@
       right: 14px;
     }
 
+    .mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+      margin: 0;
+    }
+
     .mapboxgl-ctrl-group {
       border-radius: var(--radius-md);
       box-shadow: none;
       border: var(--border-hairline);
+      overflow: hidden;
+      background: var(--color-surface-raised);
     }
 
-    .mapboxgl-ctrl button {
+    .mapboxgl-ctrl-group button {
       width: 32px;
       height: 32px;
+    }
+
+    .mapboxgl-ctrl-group button + button {
+      border-top-color: var(--color-border);
     }
 
     @media (max-width: 768px) {
       .explore-nav {
         display: flex;
         justify-content: space-between;
+      }
+
+      .mapboxgl-ctrl-top-right {
+        top: 14px;
+        right: 14px;
       }
     }
   </style>
@@ -286,13 +301,14 @@
       resultsSort.classList.toggle("is-nearest", sortMode === "nearest");
     }
 
-    function switchToListView() {
+    function switchToMapView() {
       viewButtons.forEach((item) => {
-        item.classList.toggle("is-active", item.dataset.view === "list");
+        item.classList.toggle("is-active", item.dataset.view === "map");
       });
-      mapElement.style.display = "none";
-      mapListView.classList.add("is-visible");
-      popup.style.display = "none";
+      mapElement.style.display = "block";
+      mapListView.classList.remove("is-visible");
+      locationButton.hidden = false;
+      popup.style.display = "";
     }
 
     function refreshListingViews() {
@@ -345,7 +361,10 @@
           locationButton.classList.add("is-active");
           locationButton.removeAttribute("aria-busy");
 
+          switchToMapView();
+
           if (mapInstance) {
+            mapInstance.resize();
             mapInstance.flyTo({
               center: [userLocation.lng, userLocation.lat],
               zoom: 14
@@ -355,10 +374,6 @@
 
           const sorted = refreshListingViews();
           showExploreToast("Showing spots nearest to you");
-
-          if (window.matchMedia("(max-width: 768px)").matches) {
-            switchToListView();
-          }
 
           if (sorted[0]) {
             showPopup(sorted[0]);

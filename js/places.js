@@ -182,15 +182,40 @@ export function getListingGooglePhotoRefs(listing = {}) {
 }
 
 export function getListingPhotoUrls(listing = {}) {
-  if (Array.isArray(listing.photos) && listing.photos.length) {
-    return listing.photos;
+  const official = Array.isArray(listing.photos)
+    ? listing.photos.filter((url) => typeof url === "string" && url)
+    : [];
+  const community = [];
+
+  if (Array.isArray(listing.userRatings)) {
+    listing.userRatings.forEach((rating) => {
+      if (!Array.isArray(rating?.photos)) {
+        return;
+      }
+
+      rating.photos.forEach((url) => {
+        if (typeof url === "string" && url && !official.includes(url) && !community.includes(url)) {
+          community.push(url);
+        }
+      });
+    });
+  }
+
+  const merged = [...official, ...community];
+
+  if (merged.length) {
+    return merged;
   }
 
   return getListingGooglePhotoRefs(listing).map(getPhotoUrl);
 }
 
 export function getListingPhotoAttribution(listing = {}) {
-  if (Array.isArray(listing.photos) && listing.photos.length) {
+  const hasOfficial = Array.isArray(listing.photos) && listing.photos.length > 0;
+  const hasCommunity = Array.isArray(listing.userRatings)
+    && listing.userRatings.some((rating) => Array.isArray(rating?.photos) && rating.photos.length);
+
+  if (hasOfficial || hasCommunity) {
     return "";
   }
 
@@ -198,7 +223,11 @@ export function getListingPhotoAttribution(listing = {}) {
 }
 
 export function usesGooglePhotos(listing = {}) {
-  return !listing.photos?.length && getListingGooglePhotoRefs(listing).length > 0;
+  const hasOfficial = Array.isArray(listing.photos) && listing.photos.length > 0;
+  const hasCommunity = Array.isArray(listing.userRatings)
+    && listing.userRatings.some((rating) => Array.isArray(rating?.photos) && rating.photos.length);
+
+  return !hasOfficial && !hasCommunity && getListingGooglePhotoRefs(listing).length > 0;
 }
 
 export function getPhotoUrl(photoReference) {

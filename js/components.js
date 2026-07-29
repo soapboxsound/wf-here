@@ -294,7 +294,8 @@ export function createWfScoreDetail(listing = {}) {
   return detail;
 }
 
-export function createRatingWidget(existingRating = null) {
+export function createRatingWidget(existingRating = null, options = {}) {
+  const includeContributeExtras = Boolean(options.contribute);
   const widget = document.createElement("div");
   widget.className = "rating-widget";
 
@@ -305,11 +306,32 @@ export function createRatingWidget(existingRating = null) {
     vibe: existingRating?.vibe || ""
   };
 
+  let wifiMbps =
+    existingRating?.wifiMbps != null && Number(existingRating.wifiMbps) > 0
+      ? String(existingRating.wifiMbps)
+      : "";
+  let note = existingRating?.note || "";
+  let photoFiles = [];
+  const existingPhotos = Array.isArray(existingRating?.photos)
+    ? [...existingRating.photos]
+    : [];
+  let keptPhotos = [...existingPhotos];
+
   const categories = [
     { key: "signal", label: "Signal", options: ["great", "decent", "poor"] },
     { key: "volume", label: "Volume", options: ["quiet", "moderate", "loud"] },
     { key: "power", label: "Power", options: ["plenty", "some", "none"] }
   ];
+
+  const ratingBlock = document.createElement("div");
+  ratingBlock.className = includeContributeExtras ? "contribute-block" : "rating-block";
+
+  if (includeContributeExtras) {
+    ratingBlock.innerHTML = `
+      <p class="contribute-block-label">How was it?</p>
+      <p class="contribute-block-hint">Rate signal, volume, power, and vibe.</p>
+    `;
+  }
 
   categories.forEach((category) => {
     const row = document.createElement("div");
@@ -321,8 +343,8 @@ export function createRatingWidget(existingRating = null) {
     name.textContent = category.label;
     row.appendChild(name);
 
-    const options = document.createElement("div");
-    options.className = "rating-options";
+    const optionsRow = document.createElement("div");
+    optionsRow.className = "rating-options";
 
     category.options.forEach((option) => {
       const button = document.createElement("button");
@@ -337,16 +359,16 @@ export function createRatingWidget(existingRating = null) {
 
       button.addEventListener("click", () => {
         selected[category.key] = option;
-        options.querySelectorAll(".rating-option").forEach((item) => {
+        optionsRow.querySelectorAll(".rating-option").forEach((item) => {
           item.classList.toggle("is-active", item === button);
         });
       });
 
-      options.appendChild(button);
+      optionsRow.appendChild(button);
     });
 
-    row.appendChild(options);
-    widget.appendChild(row);
+    row.appendChild(optionsRow);
+    ratingBlock.appendChild(row);
   });
 
   const vibeRow = document.createElement("div");
@@ -361,18 +383,18 @@ export function createRatingWidget(existingRating = null) {
   const vibeOptions = document.createElement("div");
   vibeOptions.className = "rating-vibe-options";
 
-  Object.keys({
-    "laptop friendly": 9,
-    "good energy": 8,
-    "hidden gem": 9,
-    "great coffee": 7,
-    "neighborhood spot": 8,
-    "open and airy": 8,
-    "quiet corners": 9,
-    "24hr access": 10,
-    "outdoor space": 7,
-    "dog friendly": 7
-  }).forEach((option) => {
+  [
+    "laptop friendly",
+    "good energy",
+    "hidden gem",
+    "great coffee",
+    "neighborhood spot",
+    "open and airy",
+    "quiet corners",
+    "24hr access",
+    "outdoor space",
+    "dog friendly"
+  ].forEach((option) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "rating-option vibe";
@@ -394,10 +416,158 @@ export function createRatingWidget(existingRating = null) {
   });
 
   vibeRow.appendChild(vibeOptions);
-  widget.appendChild(vibeRow);
+  ratingBlock.appendChild(vibeRow);
+  widget.appendChild(ratingBlock);
 
-  widget.getSelectedRating = () => ({ ...selected });
-  widget.isComplete = () => Boolean(selected.signal && selected.volume && selected.power && selected.vibe);
+  if (includeContributeExtras) {
+    const detailsBlock = document.createElement("div");
+    detailsBlock.className = "contribute-block";
+    detailsBlock.innerHTML = `
+      <p class="contribute-block-label">Add details <span>(optional)</span></p>
+      <p class="contribute-block-hint">Measured speed, photos, or a quick note help the next person.</p>
+    `;
+
+    const speedField = document.createElement("label");
+    speedField.className = "contribute-field";
+    speedField.innerHTML = `
+      <span class="contribute-field-label">Wifi speed (Mbps)</span>
+      <input class="contribute-input" type="number" min="1" max="2000" step="1" inputmode="numeric" placeholder="e.g. 85" />
+    `;
+    const speedInput = speedField.querySelector("input");
+    speedInput.value = wifiMbps;
+    speedInput.addEventListener("input", () => {
+      wifiMbps = speedInput.value.trim();
+    });
+    detailsBlock.appendChild(speedField);
+
+    const noteField = document.createElement("label");
+    noteField.className = "contribute-field";
+    noteField.innerHTML = `
+      <span class="contribute-field-label">Note</span>
+      <textarea class="contribute-textarea" rows="3" maxlength="280" placeholder="Outlets by the window, password on the receipt, quiet after 3…"></textarea>
+    `;
+    const noteInput = noteField.querySelector("textarea");
+    noteInput.value = note;
+    noteInput.addEventListener("input", () => {
+      note = noteInput.value.trim();
+    });
+    detailsBlock.appendChild(noteField);
+
+    const photosField = document.createElement("div");
+    photosField.className = "contribute-field";
+
+    const photosLabel = document.createElement("span");
+    photosLabel.className = "contribute-field-label";
+    photosLabel.textContent = "Photos";
+    photosField.appendChild(photosLabel);
+
+    const photoPreview = document.createElement("div");
+    photoPreview.className = "contribute-photo-preview";
+    photosField.appendChild(photoPreview);
+
+    const photoActions = document.createElement("div");
+    photoActions.className = "contribute-photo-actions";
+
+    const photoInput = document.createElement("input");
+    photoInput.type = "file";
+    photoInput.accept = "image/jpeg,image/png";
+    photoInput.multiple = true;
+    photoInput.hidden = true;
+
+    const addPhotosBtn = document.createElement("button");
+    addPhotosBtn.type = "button";
+    addPhotosBtn.className = "contribute-photo-add";
+    addPhotosBtn.innerHTML = '<i class="ti ti-camera-plus"></i><span>Add photos</span>';
+
+    const photoHint = document.createElement("span");
+    photoHint.className = "contribute-photo-hint";
+    photoHint.textContent = "JPG or PNG · up to 3";
+
+    photoActions.appendChild(addPhotosBtn);
+    photoActions.appendChild(photoHint);
+    photosField.appendChild(photoActions);
+    photosField.appendChild(photoInput);
+    detailsBlock.appendChild(photosField);
+    widget.appendChild(detailsBlock);
+
+    function renderPhotoPreview() {
+      photoPreview.innerHTML = "";
+
+      keptPhotos.forEach((url, index) => {
+        const thumb = document.createElement("div");
+        thumb.className = "contribute-photo-thumb";
+        thumb.style.backgroundImage = `url("${url}")`;
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "contribute-photo-remove";
+        remove.setAttribute("aria-label", "Remove photo");
+        remove.innerHTML = '<i class="ti ti-x"></i>';
+        remove.addEventListener("click", () => {
+          keptPhotos.splice(index, 1);
+          renderPhotoPreview();
+        });
+
+        thumb.appendChild(remove);
+        photoPreview.appendChild(thumb);
+      });
+
+      photoFiles.forEach((file, index) => {
+        const thumb = document.createElement("div");
+        thumb.className = "contribute-photo-thumb";
+        const objectUrl = URL.createObjectURL(file);
+        thumb.style.backgroundImage = `url("${objectUrl}")`;
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "contribute-photo-remove";
+        remove.setAttribute("aria-label", "Remove photo");
+        remove.innerHTML = '<i class="ti ti-x"></i>';
+        remove.addEventListener("click", () => {
+          photoFiles.splice(index, 1);
+          URL.revokeObjectURL(objectUrl);
+          renderPhotoPreview();
+        });
+
+        thumb.appendChild(remove);
+        photoPreview.appendChild(thumb);
+      });
+
+      const total = keptPhotos.length + photoFiles.length;
+      addPhotosBtn.disabled = total >= 3;
+      photoHint.textContent =
+        total >= 3 ? "3 photo limit reached" : `JPG or PNG · ${3 - total} left`;
+    }
+
+    addPhotosBtn.addEventListener("click", () => photoInput.click());
+
+    photoInput.addEventListener("change", () => {
+      const incoming = Array.from(photoInput.files || []);
+      photoInput.value = "";
+      const slots = Math.max(0, 3 - keptPhotos.length - photoFiles.length);
+      photoFiles = [...photoFiles, ...incoming.slice(0, slots)];
+      renderPhotoPreview();
+    });
+
+    renderPhotoPreview();
+  }
+
+  widget.getSelectedRating = () => {
+    if (!includeContributeExtras) {
+      return { ...selected };
+    }
+
+    const mbps = Number(wifiMbps);
+    return {
+      ...selected,
+      wifiMbps: Number.isFinite(mbps) && mbps > 0 ? Math.round(mbps) : null,
+      note: note.slice(0, 280),
+      photos: keptPhotos
+    };
+  };
+  widget.getPhotoFiles = () => (includeContributeExtras ? [...photoFiles] : []);
+  widget.isComplete = () =>
+    Boolean(selected.signal && selected.volume && selected.power && selected.vibe);
 
   return widget;
 }

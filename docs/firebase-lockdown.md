@@ -29,8 +29,18 @@ firebase deploy --only firestore:rules,firestore:indexes
 
 Or paste `firestore.rules` into Firebase Console → Firestore → Rules → Publish.
 
+## 3b. Publish Storage rules
+Needed for community contribution photos on place pages:
+
+```bash
+firebase deploy --only storage
+```
+
+Or paste `storage.rules` into Firebase Console → Storage → Rules → Publish.
+
 ## 4. Verify
 - Explore still shows published spots
 - Submit still creates a submission
 - Incognito DevTools cannot write to `listings`
 - Sign in with Google on the site, then open `/admin/listings` — it should unlock with that same account
+- Signed-in users can save a place contribution (rating + optional Mbps/photos)

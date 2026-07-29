@@ -195,10 +195,12 @@
 
       <section class="reviews-section">
         <div class="reviews-header">
-          <h2 class="section-label" style="margin-bottom: 0;">Your rating</h2>
+          <h2 class="section-label" style="margin-bottom: 0;">Help improve this spot</h2>
           <p class="review-count" id="reviewCountLabel">no community ratings yet</p>
         </div>
+        <p class="contribute-intro">Share a rating, measured wifi speed, or photos from your visit.</p>
         <div id="ratingFormMount"></div>
+        <div class="community-notes" id="communityNotes" hidden></div>
       </section>
 
       <p class="removal-note">Is this your business? <a href="/">Request removal ↗</a></p>
@@ -207,16 +209,16 @@
     <aside class="place-sidebar">
       <div class="action-card">
         <button class="action-button action-button-primary" id="saveSpotBtn" type="button"><i class="ti ti-heart"></i><span>save this spot</span></button>
-        <button class="action-button action-button-secondary" type="button"><i class="ti ti-map-pin"></i><span>get directions</span></button>
+        <button class="action-button action-button-secondary" id="directionsBtn" type="button"><i class="ti ti-map-pin"></i><span>get directions</span></button>
         <hr class="action-divider">
         <div class="action-detail-row"><span class="action-detail-label">Address</span><span class="action-detail-value" id="sidebarAddress">—</span></div>
         <div class="action-detail-row"><span class="action-detail-label">Neighborhood</span><span class="action-detail-value" id="sidebarNeighborhood">—</span></div>
         <div class="action-detail-row"><span class="action-detail-label">Type</span><span class="action-detail-value" id="sidebarType">—</span></div>
         <div class="action-detail-row"><span class="action-detail-label">Price range</span><span class="action-detail-value">$</span></div>
-        <div class="map-thumb">
+        <button class="map-thumb" id="openMapBtn" type="button" aria-label="Open in Google Maps">
           <svg class="map-thumb-pin" viewBox="0 0 14 22" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 7C0 3.13401 3.13401 0 7 0C10.866 0 14 3.13401 14 7C14 8.48601 13.519 9.85901 12.702 10.976L7 22L1.29799 10.976C0.480995 9.85901 0 8.48601 0 7ZM7 10C8.65685 10 10 8.65685 10 7C10 5.34315 8.65685 4 7 4C5.34315 4 4 5.34315 4 7C4 8.65685 5.34315 10 7 10Z" fill="#E8281A"/></svg>
           <div class="map-thumb-badge">open map</div>
-        </div>
+        </button>
         <p class="submitted-line">submitted by the community · verified by wf—here</p>
       </div>
     </aside>
@@ -227,6 +229,7 @@
     import {
       addUserRating,
       calculateWfScore,
+      getDisplayedWifiMbps,
       getListing,
       getUserRating,
       isSpotSaved,
@@ -234,6 +237,7 @@
       unsaveSpot
     } from "/js/db.js";
     import { createRatingWidget, createWfScoreDetail } from "/js/components.js";
+    import { uploadContributionPhotos, validatePhotoFile } from "/js/storage.js";
     import {
       getListingPhotoAttribution,
       getListingPhotoUrls,
@@ -299,6 +303,7 @@
     const wifiSpeed = document.getElementById("wifiSpeed");
     const reviewCountLabel = document.getElementById("reviewCountLabel");
     const ratingFormMount = document.getElementById("ratingFormMount");
+    const communityNotes = document.getElementById("communityNotes");
     const revealBtn = document.getElementById("revealBtn");
     const bathroomRevealed = document.getElementById("bathroomRevealed");
     const bathroomSubtitle = document.getElementById("bathroomSubtitle");
@@ -319,6 +324,8 @@
     const placePhotoCount = document.getElementById("placePhotoCount");
     const placePhotoAttribution = document.getElementById("placePhotoAttribution");
     const saveSpotBtn = document.getElementById("saveSpotBtn");
+    const directionsBtn = document.getElementById("directionsBtn");
+    const openMapBtn = document.getElementById("openMapBtn");
     const wifiPasswordContent = document.getElementById("wifiPasswordContent");
     const loginNudge = document.getElementById("loginNudge");
     const wifiSignInBtn = document.getElementById("wifiSignInBtn");
@@ -345,6 +352,47 @@
       const saved = await isSpotSaved(user.uid, currentListing.slug);
       updateSaveButton(saved);
     }
+
+    function getDirectionsUrl(listing) {
+      if (!listing) {
+        return "";
+      }
+
+      const lat = Number(listing.lat);
+      const lng = Number(listing.lng);
+
+      if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`;
+      }
+
+      if (listing.googlePlaceId) {
+        return `https://www.google.com/maps/dir/?api=1&destination_place_id=${encodeURIComponent(listing.googlePlaceId)}&destination=${encodeURIComponent(listing.name || listing.address || "destination")}`;
+      }
+
+      if (listing.address) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(listing.address)}`;
+      }
+
+      if (listing.name) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.name)}`;
+      }
+
+      return "";
+    }
+
+    function openDirections() {
+      const url = getDirectionsUrl(currentListing);
+
+      if (!url) {
+        showPlaceToast("Directions aren’t available for this spot yet.");
+        return;
+      }
+
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    directionsBtn.addEventListener("click", openDirections);
+    openMapBtn.addEventListener("click", openDirections);
 
     saveSpotBtn.addEventListener("click", async () => {
       if (!currentListing) {
@@ -486,6 +534,54 @@
       });
     }
 
+    function renderCommunityNotes(listing) {
+      if (!communityNotes) {
+        return;
+      }
+
+      const notes = (Array.isArray(listing.userRatings) ? listing.userRatings : [])
+        .filter((rating) => typeof rating?.note === "string" && rating.note.trim())
+        .slice()
+        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
+      communityNotes.innerHTML = "";
+
+      if (!notes.length) {
+        communityNotes.hidden = true;
+        return;
+      }
+
+      communityNotes.hidden = false;
+      const heading = document.createElement("h3");
+      heading.className = "community-notes-label";
+      heading.textContent = "Recent notes";
+      communityNotes.appendChild(heading);
+
+      notes.slice(0, 6).forEach((rating) => {
+        const card = document.createElement("article");
+        card.className = "community-note-card";
+
+        const meta = [];
+        if (rating.wifiMbps) {
+          meta.push(`${rating.wifiMbps} Mbps`);
+        }
+        if (rating.vibe) {
+          meta.push(rating.vibe);
+        }
+
+        card.innerHTML = `
+          <p class="community-note-text"></p>
+          ${meta.length ? `<p class="community-note-meta"></p>` : ""}
+        `;
+        card.querySelector(".community-note-text").textContent = rating.note.trim();
+        const metaEl = card.querySelector(".community-note-meta");
+        if (metaEl) {
+          metaEl.textContent = meta.join(" · ");
+        }
+        communityNotes.appendChild(card);
+      });
+    }
+
     function showPlaceToast(message) {
       const toast = document.createElement("div");
       toast.className = "admin-toast is-success";
@@ -532,7 +628,7 @@
         ratingFormMount.innerHTML = `
           <div class="review-placeholder">
             <i class="ti ti-pencil"></i>
-            <p><a href="/login">Sign in</a> to leave a rating</p>
+            <p><a href="/login">Sign in</a> to rate this spot, add photos, or share wifi speed</p>
           </div>
         `;
         return;
@@ -546,7 +642,7 @@
       const form = document.createElement("div");
       form.className = "review-form";
 
-      const widget = createRatingWidget(existingRating);
+      const widget = createRatingWidget(existingRating, { contribute: true });
       const error = document.createElement("p");
       error.className = "review-form-error";
       error.hidden = true;
@@ -554,13 +650,25 @@
       const submit = document.createElement("button");
       submit.type = "button";
       submit.className = "review-form-submit";
-      submit.textContent = existingRating ? "Update rating" : "Save rating";
+      submit.textContent = existingRating ? "Update contribution" : "Save contribution";
 
       submit.addEventListener("click", async () => {
         if (!widget.isComplete()) {
           error.hidden = false;
-          error.textContent = "Please rate all four categories.";
+          error.textContent = "Please rate signal, volume, power, and vibe.";
           return;
+        }
+
+        const photoFiles = widget.getPhotoFiles();
+
+        for (const file of photoFiles) {
+          const validationError = validatePhotoFile(file);
+
+          if (validationError) {
+            error.hidden = false;
+            error.textContent = validationError;
+            return;
+          }
         }
 
         error.hidden = true;
@@ -569,13 +677,33 @@
 
         try {
           const rating = widget.getSelectedRating();
-          await addUserRating(currentListing.id, user.uid, rating);
+          let photos = Array.isArray(rating.photos) ? [...rating.photos] : [];
+
+          if (photoFiles.length) {
+            const uploaded = await uploadContributionPhotos(
+              currentListing.id,
+              user.uid,
+              photoFiles
+            );
+            photos = [...photos, ...uploaded].slice(0, 3);
+          }
+
+          const payload = {
+            ...rating,
+            photos
+          };
+
+          await addUserRating(currentListing.id, user.uid, payload);
 
           const nextRatings = Array.isArray(currentListing.userRatings)
             ? [...currentListing.userRatings]
             : [];
           const existingIndex = nextRatings.findIndex((entry) => entry.userId === user.uid);
-          const nextEntry = { userId: user.uid, ...rating, createdAt: new Date().toISOString() };
+          const nextEntry = {
+            userId: user.uid,
+            ...payload,
+            createdAt: new Date().toISOString()
+          };
 
           if (existingIndex >= 0) {
             nextRatings[existingIndex] = nextEntry;
@@ -593,14 +721,16 @@
           };
 
           renderWfScoreSection(currentListing);
-          submit.textContent = "Update rating";
-          showPlaceToast("Rating saved.");
+          renderWifiDetails(currentListing);
+          renderPlacePhotos(currentListing);
+          renderCommunityNotes(currentListing);
+          await renderRatingForm(user);
+          showPlaceToast("Thanks — your contribution was saved.");
         } catch (saveError) {
           console.error("Failed to save rating", saveError);
           error.hidden = false;
-          error.textContent = saveError.message || "Could not save rating.";
-          submit.textContent = existingRating ? "Update rating" : "Save rating";
-        } finally {
+          error.textContent = saveError.message || "Could not save contribution.";
+          submit.textContent = existingRating ? "Update contribution" : "Save contribution";
           submit.disabled = false;
         }
       });
@@ -609,6 +739,27 @@
       form.appendChild(error);
       form.appendChild(submit);
       ratingFormMount.appendChild(form);
+    }
+
+    function renderWifiDetails(listing) {
+      const wifiStyle = getWifiStyle(listing.wifiSpeed);
+      const displayed = getDisplayedWifiMbps(listing);
+      const speedLabel = formatLabel(listing.wifiSpeed) || "wifi";
+
+      if (displayed) {
+        const sourceNote =
+          displayed.source === "community"
+            ? ` · community${displayed.count > 1 ? ` (${displayed.count})` : ""}`
+            : "";
+        detailWifiSpeed.textContent = `${speedLabel} · ${displayed.mbps} Mbps${sourceNote}`;
+        wifiSpeed.textContent = `${displayed.mbps} Mbps · ${listing.wifiSpeed || speedLabel}`;
+      } else {
+        detailWifiSpeed.textContent = speedLabel;
+        wifiSpeed.textContent = listing.wifiSpeed || "—";
+      }
+
+      wifiCardDot.style.background = wifiStyle.color;
+      wifiNetwork.textContent = listing.wifiNetwork || "Wifi available";
     }
 
     function syncBathroomRevealButton(isVisible) {
@@ -715,7 +866,6 @@
         wifiPassword = listing.wifiPassword || "";
         currentBathroomCode = listing.bathroomCode || "";
 
-        const wifiStyle = getWifiStyle(listing.wifiSpeed);
         const cityLabel = formatCity(listing.city);
         const typeLabel = formatType(listing.type);
         const noiseLabel = formatLabel(listing.noiseLevel);
@@ -746,8 +896,8 @@
         }
 
         renderWfScoreSection(listing);
+        renderWifiDetails(listing);
 
-        detailWifiSpeed.textContent = `${formatLabel(listing.wifiSpeed)} · ${listing.wifiMbps} Mbps`;
         detailNoiseLevel.textContent = noiseLabel;
         detailOutlets.textContent = outletsLabel;
         detailFood.textContent = foodLabel;
@@ -755,10 +905,6 @@
         detailCost.textContent = costLabel;
         detailHours.textContent = listing.hours;
         detailBathroom.textContent = listing.bathroomNotes || (listing.bathroom ? "Yes" : "No");
-
-        wifiCardDot.style.background = wifiStyle.color;
-        wifiNetwork.textContent = listing.wifiNetwork || "Wifi available";
-        wifiSpeed.textContent = `${listing.wifiMbps} Mbps · ${listing.wifiSpeed}`;
 
         bathroomCodeValue.textContent = currentBathroomCode || "No code required";
         bathroomNote.textContent = listing.bathroomNotes || "Ask staff if you need help finding the restroom.";
@@ -777,6 +923,7 @@
 
         renderVibeTags(listing.vibeTags || []);
         renderPlacePhotos(listing);
+        renderCommunityNotes(listing);
 
         sidebarAddress.textContent = listing.address;
         sidebarNeighborhood.textContent = listing.neighborhood;

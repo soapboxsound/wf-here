@@ -134,6 +134,61 @@ export async function getUserRating(listingId, userId) {
   return userRatings.find((rating) => rating.userId === userId) || null;
 }
 
+function normalizeContributionPhotos(photos = []) {
+  return [...new Set(
+    (Array.isArray(photos) ? photos : [])
+      .filter((url) => typeof url === "string" && url.trim())
+      .map((url) => url.trim())
+  )].slice(0, 3);
+}
+
+export function getCommunityPhotoUrls(listing = {}) {
+  const ratings = Array.isArray(listing.userRatings) ? listing.userRatings : [];
+  const urls = [];
+
+  ratings.forEach((rating) => {
+    normalizeContributionPhotos(rating.photos).forEach((url) => {
+      if (!urls.includes(url)) {
+        urls.push(url);
+      }
+    });
+  });
+
+  return urls;
+}
+
+export function getDisplayedWifiMbps(listing = {}) {
+  const official = Number(listing.wifiMbps);
+
+  if (Number.isFinite(official) && official > 0) {
+    return {
+      mbps: Math.round(official),
+      source: "listed"
+    };
+  }
+
+  const reports = (Array.isArray(listing.userRatings) ? listing.userRatings : [])
+    .map((rating) => Number(rating.wifiMbps))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+
+  if (!reports.length) {
+    return null;
+  }
+
+  const mid = Math.floor(reports.length / 2);
+  const median =
+    reports.length % 2 === 0
+      ? (reports[mid - 1] + reports[mid]) / 2
+      : reports[mid];
+
+  return {
+    mbps: Math.round(median),
+    source: "community",
+    count: reports.length
+  };
+}
+
 export async function addUserRating(listingId, userId, rating) {
   if (!listingId || !userId) {
     throw new Error("listingId and userId are required");
@@ -149,12 +204,16 @@ export async function addUserRating(listingId, userId, rating) {
   const listing = snapshot.data();
   const adminRating = listing.adminRating || {};
   const userRatings = Array.isArray(listing.userRatings) ? [...listing.userRatings] : [];
+  const wifiMbps = Number(rating.wifiMbps);
   const nextRating = {
     userId,
     signal: rating.signal,
     volume: rating.volume,
     power: rating.power,
     vibe: rating.vibe,
+    wifiMbps: Number.isFinite(wifiMbps) && wifiMbps > 0 ? Math.round(wifiMbps) : null,
+    note: typeof rating.note === "string" ? rating.note.trim().slice(0, 280) : "",
+    photos: normalizeContributionPhotos(rating.photos),
     createdAt: new Date().toISOString()
   };
 

@@ -7,5 +7,14 @@ service firebase.storage {
       allow write: if request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/(jpeg|png)');
     }
+
+    // Signed-in users can add contribution photos for a published listing.
+    match /listings/{listingId}/contributions/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(jpeg|png)');
+    }
   }
 }
