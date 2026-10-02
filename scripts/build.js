@@ -16,6 +16,7 @@ const staticPaths = [
   "login",
   "profile",
   "for-businesses",
+  "offline",
   "new-york",
   "los-angeles",
   "robots.txt",

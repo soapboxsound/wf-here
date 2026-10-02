@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wf—here is offline</title>
+  <meta name="description" content="wf—here is offline. Send a note if you need to reach us.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#F8F8F6">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+      background: #F8F8F6;
+      color: #111111;
+      font-family: SF Pro Display, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
+    }
+    main {
+      width: min(440px, 100%);
+      min-width: 0;
+    }
+    .logo {
+      display: block;
+      height: 28px;
+      margin-bottom: 28px;
+    }
+    h1 {
+      font-size: 36px;
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .lede {
+      margin-top: 12px;
+      color: #666666;
+      font-size: 16px;
+      overflow-wrap: anywhere;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 28px;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #666666;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    input, textarea {
+      width: 100%;
+      border: 0.5px solid #DDDDD8;
+      border-radius: 8px;
+      background: #FFFFFF;
+      color: #111111;
+      padding: 10px 12px;
+      font: inherit;
+      letter-spacing: -0.01em;
+      text-transform: none;
+    }
+    textarea { min-height: 96px; resize: vertical; }
+    input:focus, textarea:focus {
+      outline: 1px solid #111111;
+      outline-offset: 0;
+    }
+    button {
+      align-self: flex-start;
+      margin-top: 4px;
+      border: 0;
+      border-radius: 8px;
+      background: #111111;
+      color: #F8F8F6;
+      padding: 10px 16px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .honeypot {
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+    .form-status {
+      margin-top: 14px;
+      color: #666666;
+      font-size: 14px;
+    }
+    .form-status.is-error {
+      color: #E8281A;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img class="logo" src="/assets/logo-primary.svg" alt="wf—here">
+    <h1>We’re offline.</h1>
+    <p class="lede">wf—here isn’t available right now. If you need something about a listing, send a note.</p>
+    <form id="contactForm">
+      <label>Name
+        <input id="contactName" name="name" type="text" autocomplete="name" required>
+      </label>
+      <label>Email
+        <input id="contactEmail" name="email" type="email" autocomplete="email" required>
+      </label>
+      <label>Message
+        <textarea id="contactMessage" name="message" required></textarea>
+      </label>
+      <label class="honeypot" aria-hidden="true">Company
+        <input id="contactCompany" name="company" type="text" tabindex="-1" autocomplete="off">
+      </label>
+      <button type="submit">Send a note</button>
+    </form>
+    <p class="form-status" id="contactStatus" hidden></p>
+  </main>
+  <script>
+    const form = document.getElementById("contactForm");
+    const status = document.getElementById("contactStatus");
+    const submitButton = form.querySelector("button[type='submit']");
+
+    function showStatus(message, isError) {
+      status.hidden = false;
+      status.textContent = message;
+      status.classList.toggle("is-error", Boolean(isError));
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      showStatus("", false);
+      status.hidden = true;
+      submitButton.disabled = true;
+      submitButton.textContent = "Sending…";
+
+      try {
+        const response = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: document.getElementById("contactName").value,
+            email: document.getElementById("contactEmail").value,
+            message: document.getElementById("contactMessage").value,
+            company: document.getElementById("contactCompany").value
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || "Couldn’t send that. Try again in a moment.");
+        }
+
+        form.hidden = true;
+        showStatus("Sent. We’ll get back to you.", false);
+      } catch (error) {
+        showStatus(error.message || "Couldn’t send that. Try again in a moment.", true);
+        submitButton.disabled = false;
+        submitButton.textContent = "Send a note";
+      }
+    });
+  </script>
+</body>
+</html>

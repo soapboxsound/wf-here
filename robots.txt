@@ -1,10 +1,2 @@
 User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /admin/queue
-Disallow: /admin/listings
-Disallow: /admin/map
-Disallow: /admin/import
-
-Sitemap: https://wf-here.com/sitemap.xml
-Sitemap: https://wf-here.com/api/sitemap
+Disallow: /

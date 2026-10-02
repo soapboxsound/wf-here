@@ -3,6 +3,13 @@
   "outputDirectory": "public",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/((?!offline|assets/|api/|robots\\.txt|favicon\\.ico).*)",
+      "destination": "/offline",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/explore/:city", "destination": "/explore" },
     { "source": "/place/:slug", "destination": "/place" },
